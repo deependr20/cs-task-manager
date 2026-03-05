@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
 import CompanyView from '@/components/CompanyView';
 
 export default function ViewCompanyPage() {
@@ -18,7 +17,7 @@ export default function ViewCompanyPage() {
     fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' })
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (data?.user?.role === 'admin') setUser(data.user);
+        if (data?.user?.role === 'admin' || data?.user?.role === 'manager') setUser(data.user);
         else router.push('/');
       })
       .catch(() => router.push('/'));
@@ -54,7 +53,6 @@ export default function ViewCompanyPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
       <div className="pt-16 pl-0 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="mb-6 flex items-center justify-between gap-4">
@@ -72,16 +70,18 @@ export default function ViewCompanyPage() {
                 <p className="text-slate-500 text-sm mt-1">{company.name}</p>
               </div>
             </div>
-            <Link
-              href={`/admin/companies/${id}`}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:shadow-violet-300 transition-all"
-              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit
-            </Link>
+            {user?.role === 'admin' && (
+              <Link
+                href={`/admin/companies/${id}`}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:shadow-violet-300 transition-all"
+                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </Link>
+            )}
           </div>
           <CompanyView company={company} />
         </div>

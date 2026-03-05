@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '–';
@@ -38,15 +37,17 @@ export default function TaskDetailsPage() {
   const [savingMemo, setSavingMemo] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
 
+  const isViewOnly = user?.role === 'manager';
+
   useEffect(() => { fetchUser(); }, []);
-  useEffect(() => { if (user?.role === 'admin') { fetchTasks(); fetchMemos(); } }, [user]);
+  useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') { fetchTasks(); fetchMemos(); } }, [user]);
 
   const fetchUser = async () => {
     try {
       const res = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data.user.role !== 'admin') router.push('/employee/dashboard');
+        if (data.user.role !== 'admin' && data.user.role !== 'manager') router.push('/employee/dashboard');
         else setUser(data.user);
       } else router.push('/');
     } catch { router.push('/'); }
@@ -114,18 +115,12 @@ export default function TaskDetailsPage() {
     return last?.note ? `${last.note.slice(0, 60)}${last.note.length > 60 ? '…' : ''}` : '–';
   };
 
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
-    </div>
-  );
+  if (!user) return null;
 
   const sc = (status) => statusConfig[status] || { cls: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
-
       <div className="pt-16 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
@@ -239,7 +234,7 @@ export default function TaskDetailsPage() {
                                 </svg>
                                 View Memo
                               </a>
-                            ) : (
+                            ) : !isViewOnly ? (
                               <button onClick={() => openRaiseMemo(task)}
                                 className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,6 +242,8 @@ export default function TaskDetailsPage() {
                                 </svg>
                                 Raise Memo
                               </button>
+                            ) : (
+                              <span className="text-slate-300 text-xs">–</span>
                             )}
                           </td>
                         </tr>
@@ -345,7 +342,7 @@ export default function TaskDetailsPage() {
                             </svg>
                             View Memo
                           </a>
-                        ) : (
+                        ) : !isViewOnly ? (
                           <button onClick={() => openRaiseMemo(task)}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 shadow-sm hover:scale-[1.02] transition-all">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,6 +350,8 @@ export default function TaskDetailsPage() {
                             </svg>
                             Raise Memo
                           </button>
+                        ) : (
+                          <span className="text-xs text-slate-300">View only</span>
                         )}
                       </div>
                     </div>

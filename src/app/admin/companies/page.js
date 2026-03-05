@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
 
 const kycConfig = {
   Active:   { cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', dot: 'bg-emerald-400' },
@@ -11,7 +10,7 @@ const kycConfig = {
   Pending:  { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',        dot: 'bg-amber-400' },
 };
 
-function CompanyCard({ company, onDelete }) {
+function CompanyCard({ company, onDelete, viewOnly }) {
   const [expanded, setExpanded] = useState(false);
 
   const directors = Array.isArray(company.directors) ? company.directors : [];
@@ -151,20 +150,24 @@ function CompanyCard({ company, onDelete }) {
             </svg>
             View
           </Link>
-          <Link href={`/admin/companies/${company._id}`}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 transition-all">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Edit
-          </Link>
-          <button type="button" onClick={() => onDelete(company._id, company.name)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all ring-1 ring-rose-100">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Delete
-          </button>
+          {!viewOnly && (
+            <>
+              <Link href={`/admin/companies/${company._id}`}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 transition-all">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </Link>
+              <button type="button" onClick={() => onDelete(company._id, company.name)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all ring-1 ring-rose-100">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -178,15 +181,17 @@ export default function AdminCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
+  const isViewOnly = user?.role === 'manager';
+
   useEffect(() => { fetchUser(); }, []);
-  useEffect(() => { if (user?.role === 'admin') fetchCompanies(); }, [user]);
+  useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') fetchCompanies(); }, [user]);
 
   const fetchUser = async () => {
     try {
       const res = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data.user.role !== 'admin') router.push('/employee/dashboard');
+        if (data.user.role !== 'admin' && data.user.role !== 'manager') router.push('/employee/dashboard');
         else setUser(data.user);
       } else router.push('/');
     } catch { router.push('/'); }
@@ -208,11 +213,7 @@ export default function AdminCompaniesPage() {
     } catch {}
   };
 
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
-    </div>
-  );
+  if (!user) return null;
 
   const filtered = companies.filter((c) =>
     !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.cin?.toLowerCase().includes(search.toLowerCase())
@@ -222,8 +223,6 @@ export default function AdminCompaniesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
-
       <div className="pt-16 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
@@ -231,16 +230,18 @@ export default function AdminCompaniesPage() {
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-black text-slate-800">Companies</h1>
-              <p className="text-slate-500 text-sm mt-1">Manage company and director details</p>
+              <p className="text-slate-500 text-sm mt-1">{isViewOnly ? 'View company and director details' : 'Manage company and director details'}</p>
             </div>
-            <Link href="/admin/companies/new"
-              className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:shadow-violet-300 hover:scale-[1.02] transition-all"
-              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Company
-            </Link>
+            {!isViewOnly && (
+              <Link href="/admin/companies/new"
+                className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:shadow-violet-300 hover:scale-[1.02] transition-all"
+                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Company
+              </Link>
+            )}
           </div>
 
           {/* Summary stats */}
@@ -299,7 +300,7 @@ export default function AdminCompaniesPage() {
               <p className="text-slate-500 font-semibold">
                 {search ? `No companies matching "${search}"` : 'No companies yet.'}
               </p>
-              {!search && (
+              {!search && !isViewOnly && (
                 <Link href="/admin/companies/new"
                   className="inline-flex items-center gap-2 mt-4 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
                   style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
@@ -317,7 +318,7 @@ export default function AdminCompaniesPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filtered.map((company) => (
-                  <CompanyCard key={company._id} company={company} onDelete={handleDelete} />
+                  <CompanyCard key={company._id} company={company} onDelete={handleDelete} viewOnly={isViewOnly} />
                 ))}
               </div>
             </>

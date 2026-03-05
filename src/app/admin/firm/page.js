@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 
 export default function AdminFirmPage() {
   const router = useRouter();
@@ -129,7 +128,6 @@ export default function AdminFirmPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
       <main className="pt-24 px-4 pb-8 md:pl-72 md:pr-8">
         <div className="max-w-xl mx-auto">
           <h1 className="text-2xl font-bold text-slate-800 mb-2">Company profile</h1>

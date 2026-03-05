@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import StatsCard from '@/components/StatsCard';
 import TaskCard from '@/components/TaskCard';
 import MemoPreview from '@/components/MemoPreview';
@@ -216,17 +215,11 @@ export default function AdminDashboard() {
   const pendingApprovals = tasks.filter(t => t.status === 'Pending Admin Approval');
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin"></div>
-      </div>
-    );
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
-
       {/* Main content - offset for sidebar (none on mobile, full on md+) */}
       <div className="pt-16 pl-0 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">

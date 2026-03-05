@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-export default function Navbar({ user }) {
+export default function Navbar({ user, onLogout }) {
   const router = useRouter();
   const pathname = usePathname();
   const [showMenu, setShowMenu] = useState(false);
@@ -11,6 +11,9 @@ export default function Navbar({ user }) {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    if (typeof onLogout === 'function') {
+      onLogout();
+    }
     router.push('/');
   };
 
@@ -120,6 +123,33 @@ export default function Navbar({ user }) {
         </svg>
       ),
     },
+    {
+      label: 'Task Sheet',
+      path: '/admin/task-details',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Memo Details',
+      path: '/admin/memo-details',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Companies',
+      path: '/admin/companies',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+    },
   ];
 
   const employeeNavItems = [
@@ -166,7 +196,7 @@ export default function Navbar({ user }) {
 
       {/* SIDEBAR - drawer on mobile, fixed on md+ */}
       <aside
-        className={`fixed top-0 left-0 h-full z-40 flex flex-col transition-all duration-300 ease-in-out
+        className={`fixed top-0 left-0 h-full z-40 flex flex-col
           ${sidebarCollapsed ? 'w-20' : 'w-64'}
           md:translate-x-0
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -310,14 +340,13 @@ export default function Navbar({ user }) {
 
       {/* TOP BAR - full width on mobile with hamburger, offset on md+ */}
       <header
-        className={`fixed top-0 right-0 z-30 h-16 flex items-center px-4 sm:px-6 transition-all duration-300
+        className={`fixed top-0 right-0 z-30 h-16 flex items-center px-4 sm:px-6
           left-0 md:left-64
           ${sidebarCollapsed ? 'md:left-20' : 'md:left-64'}
         `}
         style={{
           background: 'rgba(255,255,255,0.85)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(148,163,184,0.15)',
           boxShadow: '0 1px 20px rgba(0,0,0,0.06)',
         }}
       >
@@ -362,7 +391,7 @@ export default function Navbar({ user }) {
 
       {/* Spacer div for content offset - to be used in layout */}
       <div
-        className={`transition-all duration-300 ${sidebarCollapsed ? 'sidebar-offset-collapsed' : 'sidebar-offset'}`}
+        className={`${sidebarCollapsed ? 'sidebar-offset-collapsed' : 'sidebar-offset'}`}
         style={{ display: 'none' }}
       />
     </>

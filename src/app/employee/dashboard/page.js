@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import StatsCard from '@/components/StatsCard';
 import TaskCard from '@/components/TaskCard';
 
@@ -66,11 +65,7 @@ export default function EmployeeDashboard() {
     } catch {}
   };
 
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-10 h-10 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin" />
-    </div>
-  );
+  if (!user) return null;
 
   const statusOptions = [
     { value: 'all',                          label: 'All' },
@@ -86,8 +81,6 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
-
       <div className="pt-16 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 

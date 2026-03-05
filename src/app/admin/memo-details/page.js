@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import MemoPreview, { TEMPLATE_PDF_URL } from '@/components/MemoPreview';
 
 const formatDate = (d) =>
@@ -26,14 +25,14 @@ export default function MemoDetailsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => { fetchUser(); }, []);
-  useEffect(() => { if (user?.role === 'admin') fetchMemos(); }, [user]);
+  useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') fetchMemos(); }, [user]);
 
   const fetchUser = async () => {
     try {
       const res = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data.user.role !== 'admin') router.push('/employee/dashboard');
+        if (data.user.role !== 'admin' && data.user.role !== 'manager') router.push('/employee/dashboard');
         else setUser(data.user);
       } else router.push('/');
     } catch { router.push('/'); }
@@ -47,11 +46,7 @@ export default function MemoDetailsPage() {
     } catch {} finally { setLoading(false); }
   };
 
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
-    </div>
-  );
+  if (!user) return null;
 
   const filtered = filterStatus === 'all' ? memos : memos.filter((m) => m.status === filterStatus);
 
@@ -71,8 +66,6 @@ export default function MemoDetailsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
-
       <div className="pt-16 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
 

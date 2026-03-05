@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 
 export default function SuperadminFirmsPage() {
   const router = useRouter();
@@ -69,7 +68,6 @@ export default function SuperadminFirmsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
       <div className="pt-16 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">

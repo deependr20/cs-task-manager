@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import StatsCard from '@/components/StatsCard';
 import TaskCard from '@/components/TaskCard';
 import MemoPreview from '@/components/MemoPreview';
@@ -217,19 +216,13 @@ export default function ManagerDashboard() {
 
   const pendingApprovals = tasks.filter(t => t.status === 'Pending Manager Approval');
 
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-    </div>
-  );
+  if (!user) return null;
 
   const inputCls = "w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all";
   const managerId = user._id || user.id;
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar user={user} />
-
       <div className="pt-16 md:pl-64 transition-all duration-300 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 

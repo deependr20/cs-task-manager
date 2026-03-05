@@ -12,9 +12,11 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     name: '',
     designation: '',
+    currentPassword: '',
     password: '',
     confirmPassword: '',
   });
+  const [showPasswords, setShowPasswords] = useState(false);
 
   useEffect(() => {
     fetchUser();
@@ -33,6 +35,9 @@ export default function ProfilePage() {
           ...f,
           name: data.user.name ?? '',
           designation: data.user.designation ?? '',
+          currentPassword: '',
+          password: '',
+          confirmPassword: '',
         }));
       } else {
         router.push('/');
@@ -48,13 +53,26 @@ export default function ProfilePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage(null);
-    if (form.password && form.password !== form.confirmPassword) {
-      setMessage({ type: 'error', text: 'Passwords do not match.' });
-      return;
-    }
-    if (form.password && form.password.length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
-      return;
+    const wantsPasswordChange =
+      form.currentPassword || form.password || form.confirmPassword;
+
+    if (wantsPasswordChange) {
+      if (!form.currentPassword) {
+        setMessage({ type: 'error', text: 'Please enter your current password.' });
+        return;
+      }
+      if (!form.password) {
+        setMessage({ type: 'error', text: 'Please enter a new password.' });
+        return;
+      }
+      if (form.password.length < 6) {
+        setMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
+        return;
+      }
+      if (form.password !== form.confirmPassword) {
+        setMessage({ type: 'error', text: 'New passwords do not match.' });
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -65,13 +83,20 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name: form.name,
           designation: form.designation,
-          ...(form.password ? { password: form.password } : {}),
+          ...(wantsPasswordChange
+            ? { password: form.password, currentPassword: form.currentPassword }
+            : {}),
         }),
       });
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
-        setForm((f) => ({ ...f, password: '', confirmPassword: '' }));
+        setForm((f) => ({
+          ...f,
+          currentPassword: '',
+          password: '',
+          confirmPassword: '',
+        }));
         setMessage({ type: 'success', text: 'Profile updated successfully.' });
       } else {
         const err = await res.json().catch(() => ({}));
@@ -85,11 +110,7 @@ export default function ProfilePage() {
   };
 
   if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -161,11 +182,25 @@ export default function ProfilePage() {
               <h3 className="label text-base mb-3">Change password (optional)</h3>
               <div className="space-y-4">
                 <div>
+                  <label className="label">Current password</label>
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    value={form.currentPassword}
+                    onChange={(e) =>
+                      setForm({ ...form, currentPassword: e.target.value })
+                    }
+                    className="input"
+                    placeholder="Enter your current password"
+                  />
+                </div>
+                <div>
                   <label className="label">New password</label>
                   <input
-                    type="password"
+                    type={showPasswords ? 'text' : 'password'}
                     value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, password: e.target.value })
+                    }
                     className="input"
                     minLength={6}
                     placeholder="Leave blank to keep current"
@@ -174,12 +209,66 @@ export default function ProfilePage() {
                 <div>
                   <label className="label">Confirm new password</label>
                   <input
-                    type="password"
+                    type={showPasswords ? 'text' : 'password'}
                     value={form.confirmPassword}
-                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, confirmPassword: e.target.value })
+                    }
                     className="input"
                     placeholder="Repeat new password"
                   />
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords((v) => !v)}
+                    className="text-xs text-slate-500 hover:text-slate-700"
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {showPasswords ? (
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a10.05 10.05 0 012.223-3.592M6.223 6.223A9.967 9.967 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.05 10.05 0 01-4.132 5.411M15 12a3 3 0 00-3-3"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 3l18 18"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                      )}
+                      <span>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>

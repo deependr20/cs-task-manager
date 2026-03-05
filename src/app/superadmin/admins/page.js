@@ -10,13 +10,14 @@ export default function SuperadminAdminsPage() {
   const [firms, setFirms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', firmId: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', firmId: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' })
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.user?.role === 'superadmin') setUser(data.user);
         else router.push('/');
@@ -27,12 +28,19 @@ export default function SuperadminAdminsPage() {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      fetch('/api/firms', { cache: 'no-store', credentials: 'include' }).then((r) => r.ok ? r.json() : { firms: [] }),
-      fetch('/api/superadmin/admins', { cache: 'no-store', credentials: 'include' }).then((r) => r.ok ? r.json() : { admins: [] }),
-    ]).then(([fRes, aRes]) => {
-      setFirms(fRes.firms || []);
-      setAdmins(aRes.admins || []);
-    }).catch(() => {}).finally(() => setLoading(false));
+      fetch('/api/firms', { cache: 'no-store', credentials: 'include' }).then((r) =>
+        r.ok ? r.json() : { firms: [] },
+      ),
+      fetch('/api/superadmin/admins', { cache: 'no-store', credentials: 'include' }).then(
+        (r) => (r.ok ? r.json() : { admins: [] }),
+      ),
+    ])
+      .then(([fRes, aRes]) => {
+        setFirms(fRes.firms || []);
+        setAdmins(aRes.admins || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [user]);
 
   const handleAdd = async (e) => {
@@ -40,6 +48,14 @@ export default function SuperadminAdminsPage() {
     setError('');
     if (!form.firmId) {
       setError('Please select a firm');
+      return;
+    }
+    if (!form.password || form.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
     setSaving(true);
@@ -59,8 +75,11 @@ export default function SuperadminAdminsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setAdmins((prev) => [{ ...data.user, firmId: firms.find((f) => f._id === form.firmId) }, ...prev]);
-        setForm({ name: '', email: '', password: '', firmId: '' });
+        setAdmins((prev) => [
+          { ...data.user, firmId: firms.find((f) => f._id === form.firmId) },
+          ...prev,
+        ]);
+        setForm({ name: '', email: '', password: '', confirmPassword: '', firmId: '' });
         setShowAdd(false);
       } else {
         setError(data.error || 'Failed to create admin');
@@ -72,13 +91,7 @@ export default function SuperadminAdminsPage() {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -87,11 +100,24 @@ export default function SuperadminAdminsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
               <h1 className="text-2xl font-black text-slate-800">Admins</h1>
-              <p className="text-slate-500 text-sm mt-1">Create an admin and assign them to a firm. Each admin manages only their firm&apos;s data.</p>
+              <p className="text-slate-500 text-sm mt-1">
+                Create an admin and assign them to a firm. Each admin manages only their firm&apos;s
+                data.
+              </p>
             </div>
             <button
               type="button"
-              onClick={() => { setShowAdd(true); setError(''); setForm({ name: '', email: '', password: '', firmId: firms[0]?._id || '' }); }}
+              onClick={() => {
+                setShowAdd(true);
+                setError('');
+                setForm({
+                  name: '',
+                  email: '',
+                  password: '',
+                  confirmPassword: '',
+                  firmId: firms[0]?._id || '',
+                });
+              }}
               disabled={firms.length === 0}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 shadow-lg"
             >
@@ -123,30 +149,115 @@ export default function SuperadminAdminsPage() {
                   >
                     <option value="">Select firm</option>
                     {firms.map((f) => (
-                      <option key={f._id} value={f._id}>{f.name}</option>
+                      <option key={f._id} value={f._id}>
+                        {f.name}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Full name</label>
-                  <input type="text" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800" placeholder="Admin name" required />
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800"
+                    placeholder="Admin name"
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">Email</label>
-                  <input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800" placeholder="admin@example.com" required />
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800"
+                    placeholder="admin@example.com"
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">Password (min 6)</label>
-                  <input type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800" placeholder="••••••••" required minLength={6} />
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Password (min 6)
+                  </label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800"
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Confirm password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.confirmPassword}
+                      onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))}
+                      className="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 text-slate-800"
+                      placeholder="Re-enter password"
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a10.05 10.05 0 012.223-3.592M6.223 6.223A9.967 9.967 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.05 10.05 0 01-4.132 5.411M15 12a3 3 0 00-3-3"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 3l18 18"
+                          />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex gap-3">
-                  <button type="submit" disabled={saving} className="px-4 py-2.5 rounded-xl bg-violet-600 text-white font-semibold disabled:opacity-70">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2.5 rounded-xl bg-violet-600 text-white font-semibold disabled:opacity-70"
+                  >
                     {saving ? 'Creating...' : 'Create Admin'}
                   </button>
-                  <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdd(false)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold"
+                  >
                     Cancel
                   </button>
                 </div>
@@ -154,34 +265,40 @@ export default function SuperadminAdminsPage() {
             </div>
           )}
 
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
-            </div>
-          ) : admins.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-slate-500">
-              No admins yet. Create an admin and assign them to a firm.
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase">Admin</th>
-                    <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase">Email</th>
-                    <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase">Firm</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {admins.map((a) => (
-                    <tr key={a._id} className="border-b border-slate-50">
-                      <td className="py-4 px-6 font-semibold text-slate-800">{a.name}</td>
-                      <td className="py-4 px-6 text-slate-600">{a.email}</td>
-                      <td className="py-4 px-6 text-slate-600">{a.firmId?.name || '–'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {!loading && (
+            <div className="content-fade-in">
+              {admins.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center text-slate-500">
+                  No admins yet. Create an admin and assign them to a firm.
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase">
+                          Admin
+                        </th>
+                        <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase">
+                          Email
+                        </th>
+                        <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase">
+                          Firm
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {admins.map((a) => (
+                        <tr key={a._id} className="border-b border-slate-50">
+                          <td className="py-4 px-6 font-semibold text-slate-800">{a.name}</td>
+                          <td className="py-4 px-6 text-slate-600">{a.email}</td>
+                          <td className="py-4 px-6 text-slate-600">{a.firmId?.name || '–'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -189,3 +306,4 @@ export default function SuperadminAdminsPage() {
     </div>
   );
 }
+

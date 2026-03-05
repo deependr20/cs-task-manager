@@ -273,7 +273,7 @@
 }
 
 .animate-fade-in {
-  animation: none;
+  animation: fade-in 0.25s ease-out;
 }
 
 .animate-scale-in {

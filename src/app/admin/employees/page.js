@@ -10,6 +10,16 @@ export default function AdminEmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [accessManager, setAccessManager] = useState(null);
+  const [accessSaving, setAccessSaving] = useState(false);
+  const [accessForm, setAccessForm] = useState({
+    accessTaskSheet: true,
+    accessMemoDetails: true,
+    accessCompanies: true,
+    canCreateTasks: true,
+    canApproveTasks: true,
+    canRaiseMemos: true,
+  });
 
   useEffect(() => {
     fetchUser();
@@ -59,6 +69,45 @@ export default function AdminEmployeesPage() {
     setEmployees((prev) =>
       prev.map((emp) => (emp._id === id ? { ...emp, role: newRole } : emp)),
     );
+  };
+
+  const openAccessModal = (emp) => {
+    const perms = emp.managerPermissions || {};
+    setAccessForm({
+      accessTaskSheet: perms.accessTaskSheet !== false,
+      accessMemoDetails: perms.accessMemoDetails !== false,
+      accessCompanies: perms.accessCompanies !== false,
+      canCreateTasks: perms.canCreateTasks !== false,
+      canApproveTasks: perms.canApproveTasks !== false,
+      canRaiseMemos: perms.canRaiseMemos !== false,
+    });
+    setAccessManager(emp);
+  };
+
+  const handleSaveAccess = async () => {
+    if (!accessManager) return;
+    setAccessSaving(true);
+    try {
+      const res = await fetch(`/api/users/${accessManager._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          managerPermissions: accessForm,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmployees((prev) =>
+          prev.map((e) => (e._id === accessManager._id ? data.user : e)),
+        );
+        setAccessManager(null);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setAccessSaving(false);
+    }
   };
 
   const handleSave = async (emp) => {
@@ -184,6 +233,9 @@ export default function AdminEmployeesPage() {
                       <th className="text-center py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                         Status
                       </th>
+                      <th className="text-center py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Manager Access
+                      </th>
                       <th className="text-right py-3 px-5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                         Actions
                       </th>
@@ -228,6 +280,20 @@ export default function AdminEmployeesPage() {
                             {emp.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          {emp.role === 'manager' ? (
+                            <button
+                              type="button"
+                              onClick={() => openAccessModal(emp)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-all"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                              Edit Access
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400">N/A</span>
+                          )}
+                        </td>
                         <td className="py-3 px-5 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
@@ -255,6 +321,159 @@ export default function AdminEmployeesPage() {
           </div>
         </div>
       </div>
+      {accessManager && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          style={{ background: 'rgba(15,12,41,0.7)', backdropFilter: 'blur(8px)' }}
+        >
+          <div className="bg-white w-full sm:rounded-3xl rounded-t-3xl shadow-2xl sm:max-w-lg max-h-[92vh] overflow-hidden flex flex-col">
+            <div
+              className="px-6 py-5 flex items-center justify-between flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #4c51bf 0%, #667eea 100%)' }}
+            >
+              <div>
+                <h2 className="text-xl font-black text-white">Manager Access</h2>
+                <p className="text-white/70 text-sm truncate max-w-[260px]">
+                  {accessManager.name} ({accessManager.email})
+                </p>
+              </div>
+              <button
+                onClick={() => setAccessManager(null)}
+                className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white flex-shrink-0 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              <p className="text-xs text-slate-500 mb-2">
+                Choose which parts of the manager experience this user can see and use.
+              </p>
+              <div className="space-y-3">
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Task Sheet</p>
+                    <p className="text-xs text-slate-500">
+                      Show the admin task sheet menu for this manager.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-violet-600 rounded border-slate-300"
+                    checked={accessForm.accessTaskSheet}
+                    onChange={(e) =>
+                      setAccessForm((prev) => ({ ...prev, accessTaskSheet: e.target.checked }))
+                    }
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Memo Details</p>
+                    <p className="text-xs text-slate-500">
+                      Allow this manager to open the memo details page.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-violet-600 rounded border-slate-300"
+                    checked={accessForm.accessMemoDetails}
+                    onChange={(e) =>
+                      setAccessForm((prev) => ({ ...prev, accessMemoDetails: e.target.checked }))
+                    }
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Companies List</p>
+                    <p className="text-xs text-slate-500">
+                      Allow this manager to see the companies list.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-violet-600 rounded border-slate-300"
+                    checked={accessForm.accessCompanies}
+                    onChange={(e) =>
+                      setAccessForm((prev) => ({ ...prev, accessCompanies: e.target.checked }))
+                    }
+                  />
+                </label>
+              </div>
+              <div className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Actions inside dashboard
+                </p>
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Create Tasks</p>
+                    <p className="text-xs text-slate-500">
+                      Allow this manager to create and assign tasks.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-violet-600 rounded border-slate-300"
+                    checked={accessForm.canCreateTasks}
+                    onChange={(e) =>
+                      setAccessForm((prev) => ({ ...prev, canCreateTasks: e.target.checked }))
+                    }
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Approve Tasks</p>
+                    <p className="text-xs text-slate-500">
+                      Show the &quot;Manager Approvals&quot; section for this manager.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-violet-600 rounded border-slate-300"
+                    checked={accessForm.canApproveTasks}
+                    onChange={(e) =>
+                      setAccessForm((prev) => ({ ...prev, canApproveTasks: e.target.checked }))
+                    }
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Raise Memos</p>
+                    <p className="text-xs text-slate-500">
+                      Allow this manager to raise memos from tasks.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-violet-600 rounded border-slate-300"
+                    checked={accessForm.canRaiseMemos}
+                    onChange={(e) =>
+                      setAccessForm((prev) => ({ ...prev, canRaiseMemos: e.target.checked }))
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-white">
+              <button
+                type="button"
+                onClick={() => setAccessManager(null)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAccess}
+                disabled={accessSaving}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 shadow-lg shadow-violet-200 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
+              >
+                {accessSaving ? 'Saving…' : 'Save Access'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

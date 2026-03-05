@@ -42,6 +42,14 @@ const UserSchema = new mongoose.Schema(
       theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
       emailNotifications: { type: Boolean, default: true },
     },
+    managerPermissions: {
+      accessTaskSheet: { type: Boolean, default: true },
+      accessMemoDetails: { type: Boolean, default: true },
+      accessCompanies: { type: Boolean, default: true },
+      canCreateTasks: { type: Boolean, default: true },
+      canApproveTasks: { type: Boolean, default: true },
+      canRaiseMemos: { type: Boolean, default: true },
+    },
   },
   {
     timestamps: true,

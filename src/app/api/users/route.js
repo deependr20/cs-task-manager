@@ -49,7 +49,7 @@ export async function POST(request) {
   try {
     await connectDB();
     const body = await request.json();
-    const { name, email, password, designation, role, firmId } = body;
+    const { name, email, password, designation, role, firmId, managerPermissions } = body;
 
     if (!name || !email || !password || !designation || !role) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
@@ -88,6 +88,36 @@ export async function POST(request) {
       designation: designation.trim(),
       role,
       ...(targetFirmId && { firmId: targetFirmId }),
+      ...(role === 'manager' && managerPermissions
+        ? {
+            managerPermissions: {
+              accessTaskSheet:
+                typeof managerPermissions.accessTaskSheet === 'boolean'
+                  ? managerPermissions.accessTaskSheet
+                  : true,
+              accessMemoDetails:
+                typeof managerPermissions.accessMemoDetails === 'boolean'
+                  ? managerPermissions.accessMemoDetails
+                  : true,
+              accessCompanies:
+                typeof managerPermissions.accessCompanies === 'boolean'
+                  ? managerPermissions.accessCompanies
+                  : true,
+              canCreateTasks:
+                typeof managerPermissions.canCreateTasks === 'boolean'
+                  ? managerPermissions.canCreateTasks
+                  : true,
+              canApproveTasks:
+                typeof managerPermissions.canApproveTasks === 'boolean'
+                  ? managerPermissions.canApproveTasks
+                  : true,
+              canRaiseMemos:
+                typeof managerPermissions.canRaiseMemos === 'boolean'
+                  ? managerPermissions.canRaiseMemos
+                  : true,
+            },
+          }
+        : {}),
     });
 
     const userObject = user.toObject();

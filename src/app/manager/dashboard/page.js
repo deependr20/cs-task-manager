@@ -214,9 +214,11 @@ export default function ManagerDashboard() {
     } catch {} finally { setSavingMemo(false); }
   };
 
-  const pendingApprovals = tasks.filter(t => t.status === 'Pending Manager Approval');
+  const pendingApprovals = tasks.filter((t) => t.status === 'Pending Manager Approval');
 
   if (!user) return null;
+
+  const perms = user.managerPermissions || {};
 
   const inputCls = "w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all";
   const managerId = user._id || user.id;
@@ -234,18 +236,30 @@ export default function ManagerDashboard() {
                 Welcome back, <span className="text-blue-600 font-semibold">{user?.name}</span>
               </p>
             </div>
-            <button
-              onClick={() => {
-                setTaskForm({ title: '', description: '', priority: 'Medium', dueDate: '', completionDate: '', companyName: '', assignedTo: '' });
-                setSelectedFormKey(''); setFormDueDateGuideline('');
-                setShowTaskModal(true);
-              }}
-              className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-semibold shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:scale-[1.02] transition-all">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Task
-            </button>
+            {perms.canCreateTasks !== false && (
+              <button
+                onClick={() => {
+                  setTaskForm({
+                    title: '',
+                    description: '',
+                    priority: 'Medium',
+                    dueDate: '',
+                    completionDate: '',
+                    companyName: '',
+                    assignedTo: '',
+                  });
+                  setSelectedFormKey('');
+                  setFormDueDateGuideline('');
+                  setShowTaskModal(true);
+                }}
+                className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-semibold shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:scale-[1.02] transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Task
+              </button>
+            )}
           </div>
 
           {/* Stats - click to filter tasks */}
@@ -297,7 +311,7 @@ export default function ManagerDashboard() {
           </div>
 
           {/* Pending Approvals */}
-          {pendingApprovals.length > 0 && (
+          {perms.canApproveTasks !== false && pendingApprovals.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
@@ -395,7 +409,7 @@ export default function ManagerDashboard() {
                 <TaskCard
                   key={task._id}
                   task={task}
-                  onRaiseMemo={openRaiseMemo}
+                  onRaiseMemo={perms.canRaiseMemos === false ? undefined : openRaiseMemo}
                   onViewMemo={setPreviewMemo}
                   existingMemo={existingMemo}
                   role="manager"

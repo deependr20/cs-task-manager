@@ -21,7 +21,15 @@ export async function PUT(request, { params }) {
   try {
     await connectDB();
     const { id } = params;
-    const { name, email, designation, password, isActive, role } = await request.json();
+    const {
+      name,
+      email,
+      designation,
+      password,
+      isActive,
+      role,
+      managerPermissions,
+    } = await request.json();
 
     const updateData = { name, email, designation, isActive };
 
@@ -35,6 +43,35 @@ export async function PUT(request, { params }) {
 
     if (password) {
       updateData.password = await hashPassword(password);
+    }
+
+    if (managerPermissions && (role === 'manager' || !role)) {
+      updateData.managerPermissions = {
+        accessTaskSheet:
+          typeof managerPermissions.accessTaskSheet === 'boolean'
+            ? managerPermissions.accessTaskSheet
+            : true,
+        accessMemoDetails:
+          typeof managerPermissions.accessMemoDetails === 'boolean'
+            ? managerPermissions.accessMemoDetails
+            : true,
+        accessCompanies:
+          typeof managerPermissions.accessCompanies === 'boolean'
+            ? managerPermissions.accessCompanies
+            : true,
+        canCreateTasks:
+          typeof managerPermissions.canCreateTasks === 'boolean'
+            ? managerPermissions.canCreateTasks
+            : true,
+        canApproveTasks:
+          typeof managerPermissions.canApproveTasks === 'boolean'
+            ? managerPermissions.canApproveTasks
+            : true,
+        canRaiseMemos:
+          typeof managerPermissions.canRaiseMemos === 'boolean'
+            ? managerPermissions.canRaiseMemos
+            : true,
+      };
     }
 
     const query = { _id: id };

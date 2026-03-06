@@ -209,7 +209,7 @@ export default function MemoDetailsPage() {
                           <td className="py-3.5 px-4">
                             {memo.sentBy?.name ? (
                               <div className="flex items-center gap-1.5">
-                                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                                <div className="w-[42px] h-[31px] rounded-md bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
                                   {memo.sentBy.name.charAt(0).toUpperCase()}
                                 </div>
                                 <span className="text-sm text-slate-700">{memo.sentBy.name}</span>

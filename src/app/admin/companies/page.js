@@ -275,7 +275,7 @@ export default function AdminCompaniesPage() {
             </svg>
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by company name or CIN…"
-              className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm text-sm text-slate-700 font-medium placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all" />
+              className="w-full md:w-1/2  pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm text-sm text-slate-700 font-medium placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all" />
             {search && (
               <button onClick={() => setSearch('')}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">

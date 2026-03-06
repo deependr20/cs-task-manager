@@ -17,9 +17,15 @@ export async function GET(request) {
 
   try {
     await connectDB();
-    const query = { role: { $in: ['employee', 'manager'] }, isActive: true };
-    if (authResult.role === 'admin' || authResult.role === 'manager') {
-      if (authResult.firmId) query.firmId = authResult.firmId;
+    const query = { isActive: true };
+    if (authResult.role === 'admin') {
+      query.firmId = authResult.firmId;
+      query.role = { $in: ['admin', 'manager', 'employee'] };
+    } else if (authResult.role === 'manager') {
+      query.firmId = authResult.firmId;
+      query.role = { $in: ['manager', 'employee'] };
+    } else if (authResult.role === 'superadmin') {
+      query.role = { $in: ['admin', 'manager', 'employee'] };
     }
     const users = await User.find(query)
       .select('-password')

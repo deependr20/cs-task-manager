@@ -23,6 +23,7 @@ export default function MemoDetailsPage() {
   const [previewMemo, setPreviewMemo] = useState(null);
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
   const [filterStatus, setFilterStatus] = useState('all');
+  const [companySearch, setCompanySearch] = useState('');
 
   useEffect(() => { fetchUser(); }, []);
   useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') fetchMemos(); }, [user]);
@@ -48,7 +49,12 @@ export default function MemoDetailsPage() {
 
   if (!user) return null;
 
-  const filtered = filterStatus === 'all' ? memos : memos.filter((m) => m.status === filterStatus);
+  const byCompany = !companySearch.trim()
+    ? memos
+    : memos.filter((m) =>
+        (m.companyName || '').toLowerCase().includes(companySearch.trim().toLowerCase())
+      );
+  const filtered = filterStatus === 'all' ? byCompany : byCompany.filter((m) => m.status === filterStatus);
 
   const sc = (status) => memoStatusConfig[status] || memoStatusConfig.Draft;
 
@@ -121,6 +127,30 @@ export default function MemoDetailsPage() {
               <p className="text-2xl font-black text-white">{counts.Overdue}</p>
             </div>
           </div>
+
+          {/* Company name search */}
+          {memos.length > 0 && (
+            <div className="relative mb-5">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+                placeholder="Search by company name…"
+                className="w-full md:w-1/2 pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm text-sm text-slate-700 font-medium placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all"
+              />
+              {companySearch && (
+                <button type="button" onClick={() => setCompanySearch('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Status filter pills */}
           <div className="flex flex-wrap gap-2 mb-5">

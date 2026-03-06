@@ -113,17 +113,18 @@ export default function AdminEmployeesPage() {
   const handleSave = async (emp) => {
     setSavingId(emp._id);
     try {
+      const body = {
+        name: emp.name,
+        email: emp.email,
+        designation: emp.designation,
+        isActive: emp.isActive,
+      };
+      if (emp.role !== 'admin') body.role = emp.role;
       const res = await fetch(`/api/users/${emp._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          name: emp.name,
-          email: emp.email,
-          designation: emp.designation,
-          isActive: emp.isActive,
-          role: emp.role,
-        }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         const data = await res.json();
@@ -195,9 +196,9 @@ export default function AdminEmployeesPage() {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-slate-800">Team Members</h2>
+                <h2 className="text-sm font-bold text-slate-800">All Users (Firm)</h2>
                 <p className="text-xs text-slate-500">
-                  Total {employees.length} active {employees.length === 1 ? 'member' : 'members'}
+                  All users in your firm – {employees.length} active {employees.length === 1 ? 'member' : 'members'}
                 </p>
               </div>
             </div>
@@ -209,8 +210,8 @@ export default function AdminEmployeesPage() {
             ) : employees.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-slate-500 text-sm font-medium">
-                  No employees or managers found. Use &quot;Add Employee&quot; from the dashboard to
-                  create one.
+                  No users in this firm yet. Use &quot;Add Employee&quot; from the dashboard to
+                  create team members.
                 </p>
               </div>
             ) : (
@@ -255,14 +256,20 @@ export default function AdminEmployeesPage() {
                           {emp.designation || '-'}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <select
-                            value={emp.role}
-                            onChange={(e) => handleRoleChange(emp._id, e.target.value)}
-                            className="text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700"
-                          >
-                            <option value="employee">Employee</option>
-                            <option value="manager">Manager</option>
-                          </select>
+                          {emp.role === 'admin' ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 ring-1 ring-violet-200">
+                              Admin
+                            </span>
+                          ) : (
+                            <select
+                              value={emp.role}
+                              onChange={(e) => handleRoleChange(emp._id, e.target.value)}
+                              className="text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700"
+                            >
+                              <option value="employee">Employee</option>
+                              <option value="manager">Manager</option>
+                            </select>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span

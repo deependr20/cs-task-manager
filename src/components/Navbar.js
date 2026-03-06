@@ -179,6 +179,7 @@ export default function Navbar({ user, onLogout }) {
 
   // ── Does this firm have a logo? ───────────────────────────────────────────
   const firmLogo = user?.firm?.logo;
+  const showLogoOnly = !!user?.firm?.showLogoOnly;
 
   return (
     <>
@@ -229,8 +230,8 @@ export default function Navbar({ user, onLogout }) {
             )}
           </div>
 
-          {/* Firm name — hidden when collapsed */}
-          {!sidebarCollapsed && (
+          {/* Firm name — hidden when collapsed or 'logo only' */}
+          {!sidebarCollapsed && !showLogoOnly && (
             <div className="overflow-hidden min-w-0">
               <h1 className="text-white font-bold text-base leading-tight truncate">
                 {user?.firm?.name || 'CS Management'}
@@ -280,10 +281,22 @@ export default function Navbar({ user, onLogout }) {
             onBlur={() => setTimeout(() => setShowMenu(false), 150)}
           >
             {/* Avatar */}
-            <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br ${roleGradient}`}>
-              <span className="text-white font-bold text-sm">
-                {user?.name?.charAt(0).toUpperCase()}
-              </span>
+            <div
+              className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-lg overflow-hidden ${
+                firmLogo ? 'bg-white p-1' : `bg-gradient-to-br ${roleGradient}`
+              }`}
+            >
+              {firmLogo ? (
+                <img
+                  src={firmLogo}
+                  alt={user?.firm?.name || 'Logo'}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <span className="text-white font-bold text-sm">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
 
             {!sidebarCollapsed && (
@@ -408,11 +421,23 @@ export default function Navbar({ user, onLogout }) {
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
           </button>
 
-          {/* Avatar */}
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow bg-gradient-to-br ${roleGradient}`}>
-            <span className="text-white font-bold text-sm">
-              {user?.name?.charAt(0).toUpperCase()}
-            </span>
+          {/* Avatar (prefer firm logo over initial) */}
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shadow overflow-hidden ${
+              firmLogo ? 'bg-white p-1' : `bg-gradient-to-br ${roleGradient}`
+            }`}
+          >
+            {firmLogo ? (
+              <img
+                src={firmLogo}
+                alt={user?.firm?.name || 'Logo'}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <span className="text-white font-bold text-sm">
+                {user?.name?.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
       </header>

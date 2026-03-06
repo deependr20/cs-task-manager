@@ -33,10 +33,11 @@ export async function PATCH(request, { params }) {
   try {
     await connectDB();
     const body = await request.json();
-    const { name, logo } = body;
+    const { name, logo, showLogoOnly } = body;
     const update = {};
     if (name !== undefined) update.name = String(name).trim();
     if (logo !== undefined) update.logo = logo === '' ? null : String(logo).trim();
+    if (showLogoOnly !== undefined) update.showLogoOnly = !!showLogoOnly;
     if (Object.keys(update).length === 0) {
       const firm = await Firm.findById(id).lean();
       if (!firm) return NextResponse.json({ error: 'Firm not found' }, { status: 404 });

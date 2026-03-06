@@ -22,7 +22,7 @@ export async function GET(request) {
 
     let firm = null;
     if (user.firmId) {
-      firm = await Firm.findById(user.firmId).select('name logo').lean();
+      firm = await Firm.findById(user.firmId).select('name logo showLogoOnly').lean();
     }
     return NextResponse.json({ user: { ...user, firm } });
   } catch (error) {

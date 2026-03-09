@@ -233,7 +233,7 @@ export default function TaskDetailsPage() {
                   <table className="w-full min-w-[1100px]">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
-                        {['S.No.','Company Name','Task','Form','Assigned To','To be completed by','Due Date','Completed','Status','SRN of e-Form','Remarks','Memo Status','Action'].map((h) => (
+                        {['S.No.','Company Name','Task','Form','Assigned To','SPOC','To be completed by','Due Date','Completed','Status','SRN of e-Form','Remarks','Memo Status','Action'].map((h) => (
                           <th key={h} className="text-left py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -259,6 +259,20 @@ export default function TaskDetailsPage() {
                                 </div>
                                 <span className="text-sm text-slate-700">{task.assignedTo?.name || '–'}</span>
                               </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500">
+                              {(task.spocName || task.spocNumber) ? (
+                                <div className="leading-tight">
+                                  {task.spocName && (
+                                    <p className="text-sm font-semibold text-slate-700 truncate">{task.spocName}</p>
+                                  )}
+                                  {task.spocNumber && (
+                                    <p className="text-xs text-slate-500">{task.spocNumber}</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-sm">–</span>
+                              )}
                             </td>
                             <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.completionDate)}</td>
                             <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.dueDate)}</td>

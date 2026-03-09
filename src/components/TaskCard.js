@@ -130,33 +130,52 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onRai
         </div>
 
         {/* Meta info */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+          <div className={`${sc.innerBg} rounded-xl p-2.5`}>
+            <p className="text-xs text-slate-400 mb-0.5">To be completed by</p>
+            <p className="text-xs font-semibold text-slate-700">
+              {task.completionDate ? formatDate(task.completionDate) : '–'}
+            </p>
+          </div>
           <div className={`${sc.innerBg} rounded-xl p-2.5`}>
             <p className="text-xs text-slate-400 mb-0.5">Due Date</p>
             <p className={`text-xs font-semibold ${isOverdue ? 'text-red-600 font-bold' : 'text-slate-700'}`}>
               {formatDate(task.dueDate)}
             </p>
           </div>
-          {task.completionDate && (
-            <div className={`${sc.innerBg} rounded-xl p-2.5`}>
-              <p className="text-xs text-slate-400 mb-0.5">Completion</p>
-              <p className="text-xs font-semibold text-slate-700">{formatDate(task.completionDate)}</p>
-            </div>
-          )}
+          <div className={`${sc.innerBg} rounded-xl p-2.5`}>
+            <p className="text-xs text-slate-400 mb-0.5">Completed</p>
+            <p className="text-xs font-semibold text-slate-700">
+              {task.completedAt ? formatDate(task.completedAt) : '–'}
+            </p>
+          </div>
         </div>
 
-        {/* Assigned to */}
+        {/* Assigned to + SPOC */}
         {task.assignedTo && (
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-              {task.assignedTo.name?.charAt(0).toUpperCase()}
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                {task.assignedTo.name?.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-700">{task.assignedTo.name}</p>
+                {task.assignedTo.designation && (
+                  <p className="text-xs text-slate-400">{task.assignedTo.designation}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-700">{task.assignedTo.name}</p>
-              {task.assignedTo.designation && (
-                <p className="text-xs text-slate-400">{task.assignedTo.designation}</p>
-              )}
-            </div>
+            {(task.spocName || task.spocNumber) && (
+              <div className="text-right">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">SPOC</p>
+                {task.spocName && (
+                  <p className="text-xs font-semibold text-slate-700 truncate">{task.spocName}</p>
+                )}
+                {task.spocNumber && (
+                  <p className="text-[11px] text-slate-500">{task.spocNumber}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 

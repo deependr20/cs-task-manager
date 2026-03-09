@@ -58,7 +58,19 @@ export async function POST(request) {
 
   try {
     await connectDB();
-    const { title, description, priority, dueDate, completionDate, companyName, assignedTo, form, srnOfeForm } = await request.json();
+    const {
+      title,
+      description,
+      priority,
+      dueDate,
+      completionDate,
+      companyName,
+      assignedTo,
+      form,
+      srnOfeForm,
+      spocName,
+      spocNumber,
+    } = await request.json();
 
     if (!title || !description || !dueDate || !completionDate || !companyName || !assignedTo) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
@@ -77,6 +89,8 @@ export async function POST(request) {
       ...(authResult.firmId && { firmId: authResult.firmId }),
       ...(form && { form }),
       ...(srnOfeForm && { srnOfeForm }),
+      ...(spocName && { spocName }),
+      ...(spocNumber && { spocNumber }),
     });
 
     const populatedTask = await Task.findById(task._id)

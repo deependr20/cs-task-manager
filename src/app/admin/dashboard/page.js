@@ -25,7 +25,8 @@ export default function AdminDashboard() {
   const [editingTask, setEditingTask] = useState(null);
   const [taskForm, setTaskForm] = useState({
     title: '', description: '', priority: 'Medium',
-    dueDate: '', completionDate: '', companyName: '', assignedTo: '', form: '', srnOfeForm: '',
+    dueDate: '', completionDate: '', companyName: '', assignedTo: '',
+    form: '', srnOfeForm: '', spocName: '', spocNumber: '',
   });
   const [selectedFormKey, setSelectedFormKey] = useState('');
   const [formDueDateGuideline, setFormDueDateGuideline] = useState('');
@@ -127,7 +128,11 @@ export default function AdminDashboard() {
       });
       if (res.ok) {
         setShowTaskModal(false); setEditingTask(null);
-        setTaskForm({ title: '', description: '', priority: 'Medium', dueDate: '', completionDate: '', companyName: '', assignedTo: '', form: '', srnOfeForm: '' });
+        setTaskForm({
+          title: '', description: '', priority: 'Medium',
+          dueDate: '', completionDate: '', companyName: '', assignedTo: '',
+          form: '', srnOfeForm: '', spocName: '', spocNumber: '',
+        });
         setSelectedFormKey(''); setFormDueDateGuideline('');
         fetchTasks(); fetchStats();
       }
@@ -179,6 +184,7 @@ export default function AdminDashboard() {
       completionDate: task.completionDate ? task.completionDate.split('T')[0] : '',
       companyName: task.companyName || '', assignedTo: task.assignedTo._id,
       form: task.form || '', srnOfeForm: task.srnOfeForm || '',
+      spocName: task.spocName || '', spocNumber: task.spocNumber || '',
     });
     setSelectedFormKey(''); setFormDueDateGuideline(''); setShowTaskModal(true);
   };
@@ -761,17 +767,17 @@ export default function AdminDashboard() {
                     </select>
                   </div>
                   <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">To be completed by</label>
+                    <input type="date" value={taskForm.completionDate} onChange={(e) => setTaskForm({ ...taskForm, completionDate: e.target.value })}
+                      className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all" required />
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">Due Date</label>
                     <input type="date" value={taskForm.dueDate} onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
                       className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all" required />
                     {formDueDateGuideline && (
                       <p className="mt-1 text-xs text-violet-700">Guideline: {formDueDateGuideline}</p>
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Completion Date</label>
-                    <input type="date" value={taskForm.completionDate} onChange={(e) => setTaskForm({ ...taskForm, completionDate: e.target.value })}
-                      className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all" required />
                   </div>
                 </div>
                 <div>
@@ -784,6 +790,28 @@ export default function AdminDashboard() {
                       <option key={emp._id} value={emp._id}>{emp.name} – {emp.role === 'manager' ? 'Manager' : 'Employee'}{emp.designation ? ` (${emp.designation})` : ''}</option>
                     ))}
                   </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">SPOC Name (optional)</label>
+                    <input
+                      type="text"
+                      value={taskForm.spocName || ''}
+                      onChange={(e) => setTaskForm({ ...taskForm, spocName: e.target.value })}
+                      className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700"
+                      placeholder="Single point of contact name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">SPOC Number (optional)</label>
+                    <input
+                      type="text"
+                      value={taskForm.spocNumber || ''}
+                      onChange={(e) => setTaskForm({ ...taskForm, spocNumber: e.target.value })}
+                      className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700"
+                      placeholder="Contact number"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

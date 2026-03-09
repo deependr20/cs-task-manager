@@ -86,6 +86,10 @@ export async function PUT(request, { params }) {
       }
     }
 
+    if (task.status === 'Completed' && !task.completedAt) {
+      task.completedAt = new Date();
+    }
+
     await task.save();
 
     // Log activity

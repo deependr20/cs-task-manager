@@ -34,6 +34,12 @@ const TaskSchema = new mongoose.Schema(
     completionDate: {
       type: Date,
     },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+    spocName: { type: String, trim: true },
+    spocNumber: { type: String, trim: true },
     firmId: { type: mongoose.Schema.Types.ObjectId, ref: 'Firm', default: null },
     companyName: {
       type: String,

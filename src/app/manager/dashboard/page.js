@@ -21,6 +21,7 @@ export default function ManagerDashboard() {
   const [taskForm, setTaskForm] = useState({
     title: '', description: '', priority: 'Medium',
     dueDate: '', completionDate: '', companyName: '', assignedTo: '',
+    spocName: '', spocNumber: '',
   });
   const [selectedFormKey, setSelectedFormKey] = useState('');
   const [formDueDateGuideline, setFormDueDateGuideline] = useState('');
@@ -122,7 +123,11 @@ export default function ManagerDashboard() {
       });
       if (res.ok) {
         setShowTaskModal(false);
-        setTaskForm({ title: '', description: '', priority: 'Medium', dueDate: '', completionDate: '', companyName: '', assignedTo: '' });
+        setTaskForm({
+          title: '', description: '', priority: 'Medium',
+          dueDate: '', completionDate: '', companyName: '', assignedTo: '',
+          spocName: '', spocNumber: '',
+        });
         setSelectedFormKey(''); setFormDueDateGuideline('');
         fetchTasks(); fetchStats();
       }
@@ -630,13 +635,13 @@ export default function ManagerDashboard() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Due Date</label>
-                    <input type="date" value={taskForm.dueDate} onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">To be completed by</label>
+                    <input type="date" value={taskForm.completionDate} onChange={(e) => setTaskForm({ ...taskForm, completionDate: e.target.value })}
                       className={inputCls} required />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Completion Date</label>
-                    <input type="date" value={taskForm.completionDate} onChange={(e) => setTaskForm({ ...taskForm, completionDate: e.target.value })}
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">Due Date</label>
+                    <input type="date" value={taskForm.dueDate} onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
                       className={inputCls} required />
                   </div>
                 </div>
@@ -652,6 +657,28 @@ export default function ManagerDashboard() {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">SPOC Name (optional)</label>
+                    <input
+                      type="text"
+                      value={taskForm.spocName || ''}
+                      onChange={(e) => setTaskForm({ ...taskForm, spocName: e.target.value })}
+                      className={inputCls}
+                      placeholder="Single point of contact name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">SPOC Number (optional)</label>
+                    <input
+                      type="text"
+                      value={taskForm.spocNumber || ''}
+                      onChange={(e) => setTaskForm({ ...taskForm, spocNumber: e.target.value })}
+                      className={inputCls}
+                      placeholder="Contact number"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-white">

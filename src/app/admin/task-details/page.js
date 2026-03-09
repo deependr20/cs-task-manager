@@ -233,7 +233,7 @@ export default function TaskDetailsPage() {
                   <table className="w-full min-w-[1100px]">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
-                        {['S.No.','Company Name','Task','Form','Assigned To','Due Date','Completion Date','Status','SRN of e-Form','Remarks','Memo Status','Action'].map((h) => (
+                        {['S.No.','Company Name','Task','Form','Assigned To','To be completed by','Due Date','Completed','Status','SRN of e-Form','Remarks','Memo Status','Action'].map((h) => (
                           <th key={h} className="text-left py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -260,8 +260,9 @@ export default function TaskDetailsPage() {
                                 <span className="text-sm text-slate-700">{task.assignedTo?.name || '–'}</span>
                               </div>
                             </td>
-                            <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.dueDate)}</td>
                             <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.completionDate)}</td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.dueDate)}</td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{task.completedAt ? formatDate(task.completedAt) : '–'}</td>
                             <td className="py-3.5 px-4">
                               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${s.cls}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
@@ -403,6 +404,10 @@ export default function TaskDetailsPage() {
                             <p className="text-xs font-semibold text-slate-700 truncate">{task.assignedTo?.name || '–'}</p>
                           </div>
                         </div>
+                        <div className="bg-slate-50 rounded-xl p-2.5">
+                          <p className="text-xs text-slate-400 mb-0.5">To be completed by</p>
+                          <p className="text-xs font-semibold text-slate-700">{task.completionDate ? formatDate(task.completionDate) : '–'}</p>
+                        </div>
                         <div className={`rounded-xl p-2.5 ${isOverdue ? 'bg-rose-50' : 'bg-slate-50'}`}>
                           <p className={`text-xs mb-0.5 ${isOverdue ? 'text-rose-400' : 'text-slate-400'}`}>Due Date</p>
                           <p className={`text-xs font-semibold ${isOverdue ? 'text-rose-700' : 'text-slate-700'}`}>
@@ -410,9 +415,10 @@ export default function TaskDetailsPage() {
                             {isOverdue && <span className="ml-1 text-rose-500">⚠</span>}
                           </p>
                         </div>
+                       
                         <div className="bg-slate-50 rounded-xl p-2.5">
-                          <p className="text-xs text-slate-400 mb-0.5">Completion</p>
-                          <p className="text-xs font-semibold text-slate-700">{formatDate(task.completionDate)}</p>
+                          <p className="text-xs text-slate-400 mb-0.5">Completed</p>
+                          <p className="text-xs font-semibold text-slate-700">{task.completedAt ? formatDate(task.completedAt) : '–'}</p>
                         </div>
                         <div className="bg-slate-50 rounded-xl p-2.5">
                           <p className="text-xs text-slate-400 mb-0.5">Form</p>

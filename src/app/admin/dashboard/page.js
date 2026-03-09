@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   const [taskForm, setTaskForm] = useState({
     title: '', description: '', priority: 'Medium',
     dueDate: '', completionDate: '', companyName: '', assignedTo: '',
-    form: '', srnOfeForm: '', spocName: '', spocNumber: '',
+    form: '', srnOfeForm: '', srnAmount: '', srnDate: '', spocName: '', spocNumber: '',
   });
   const [selectedFormKey, setSelectedFormKey] = useState('');
   const [formDueDateGuideline, setFormDueDateGuideline] = useState('');
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
         setTaskForm({
           title: '', description: '', priority: 'Medium',
           dueDate: '', completionDate: '', companyName: '', assignedTo: '',
-          form: '', srnOfeForm: '', spocName: '', spocNumber: '',
+          form: '', srnOfeForm: '', srnAmount: '', srnDate: '', spocName: '', spocNumber: '',
         });
         setSelectedFormKey(''); setFormDueDateGuideline('');
         fetchTasks(); fetchStats();
@@ -184,6 +184,8 @@ export default function AdminDashboard() {
       completionDate: task.completionDate ? task.completionDate.split('T')[0] : '',
       companyName: task.companyName || '', assignedTo: task.assignedTo._id,
       form: task.form || '', srnOfeForm: task.srnOfeForm || '',
+      srnAmount: task.srnAmount != null ? String(task.srnAmount) : '',
+      srnDate: task.srnDate ? (typeof task.srnDate === 'string' ? task.srnDate.slice(0, 10) : new Date(task.srnDate).toISOString().slice(0, 10)) : '',
       spocName: task.spocName || '', spocNumber: task.spocNumber || '',
     });
     setSelectedFormKey(''); setFormDueDateGuideline(''); setShowTaskModal(true);
@@ -282,7 +284,11 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setEditingTask(null);
-                  setTaskForm({ title: '', description: '', priority: 'Medium', dueDate: '', completionDate: '', companyName: '', assignedTo: '', form: '', srnOfeForm: '' });
+                  setTaskForm({
+                    title: '', description: '', priority: 'Medium',
+                    dueDate: '', completionDate: '', companyName: '', assignedTo: '',
+                    form: '', srnOfeForm: '', srnAmount: '', srnDate: '', spocName: '', spocNumber: '',
+                  });
                   setSelectedFormKey(''); setFormDueDateGuideline('');
                   setShowTaskModal(true);
                 }}
@@ -823,6 +829,16 @@ export default function AdminDashboard() {
                     <label className="block text-xs font-bold text-slate-600 mb-1.5">SRN of e-Form (optional)</label>
                     <input type="text" value={taskForm.srnOfeForm || ''} onChange={(e) => setTaskForm({ ...taskForm, srnOfeForm: e.target.value })}
                       className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700" placeholder="Service request number" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">SRN Amount (optional)</label>
+                    <input type="number" value={taskForm.srnAmount ?? ''} onChange={(e) => setTaskForm({ ...taskForm, srnAmount: e.target.value })}
+                      className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700" placeholder="Amount" step="any" min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">SRN Date (optional)</label>
+                    <input type="date" value={taskForm.srnDate || ''} onChange={(e) => setTaskForm({ ...taskForm, srnDate: e.target.value })}
+                      className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700" />
                   </div>
                 </div>
               </div>

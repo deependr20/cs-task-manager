@@ -59,7 +59,7 @@ export async function PUT(request, { params }) {
 
     // Check permissions
     if (authResult.role === 'employee') {
-      // Employees can only update status and add remarks
+      // Employees can update status, remarks, and SRN details for their own tasks
       if (task.assignedTo.toString() !== authResult.userId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -74,6 +74,17 @@ export async function PUT(request, { params }) {
           addedBy: authResult.userId,
         });
       }
+      if (body.srnOfeForm !== undefined) {
+        task.srnOfeForm = body.srnOfeForm?.trim() || '';
+      }
+      if (body.srnAmount !== undefined) {
+        task.srnAmount =
+          body.srnAmount !== '' && body.srnAmount != null ? Number(body.srnAmount) : null;
+      }
+      if (body.srnDate !== undefined) {
+        task.srnDate =
+          body.srnDate !== '' && body.srnDate != null ? new Date(body.srnDate) : null;
+      }
     } else {
       // Admins and managers can update all fields and add approval notes
       const { remark, ...rest } = body;
@@ -83,6 +94,12 @@ export async function PUT(request, { params }) {
           note: remark.trim(),
           addedBy: authResult.userId,
         });
+      }
+      if (rest.srnAmount !== undefined) {
+        task.srnAmount = (rest.srnAmount !== '' && rest.srnAmount != null) ? Number(rest.srnAmount) : null;
+      }
+      if (rest.srnDate !== undefined) {
+        task.srnDate = (rest.srnDate !== '' && rest.srnDate != null) ? new Date(rest.srnDate) : null;
       }
     }
 

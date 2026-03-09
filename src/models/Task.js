@@ -58,6 +58,8 @@ const TaskSchema = new mongoose.Schema(
     },
     form: { type: String, trim: true },
     srnOfeForm: { type: String, trim: true },
+    srnAmount: { type: Number, default: null },
+    srnDate: { type: Date, default: null },
     remarks: [
       {
         note: String,

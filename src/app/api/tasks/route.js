@@ -68,6 +68,8 @@ export async function POST(request) {
       assignedTo,
       form,
       srnOfeForm,
+      srnAmount,
+      srnDate,
       spocName,
       spocNumber,
     } = await request.json();
@@ -89,6 +91,8 @@ export async function POST(request) {
       ...(authResult.firmId && { firmId: authResult.firmId }),
       ...(form && { form }),
       ...(srnOfeForm && { srnOfeForm }),
+      ...(srnAmount != null && srnAmount !== '' && { srnAmount: Number(srnAmount) }),
+      ...(srnDate && { srnDate: new Date(srnDate) }),
       ...(spocName && { spocName }),
       ...(spocNumber && { spocNumber }),
     });

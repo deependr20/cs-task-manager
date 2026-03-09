@@ -2,7 +2,18 @@
 
 import { getCompanyDisplayLabel } from '@/lib/utils';
 
-export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onRaiseMemo, onViewMemo, existingMemo, role, companies = [] }) {
+export default function TaskCard({
+  task,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  onRaiseMemo,
+  onViewMemo,
+  existingMemo,
+  role,
+  companies = [],
+  onEditSrn,
+}) {
   const displayCompanyName = getCompanyDisplayLabel(companies, task.companyName);
   const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'Completed';
 
@@ -179,27 +190,45 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onRai
           </div>
         )}
 
-        {/* Employee / Manager status update */}
-        {(role === 'employee' || role === 'manager') && onStatusChange && (
-          <div className="mt-1 pt-4 border-t border-black/10">
-            <p className="text-xs font-semibold text-slate-500 mb-2">Update Status</p>
-            <select
-              value={task.status}
-              onChange={(e) => onStatusChange(task._id, e.target.value)}
-              className="w-full text-sm rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all"
-              disabled={
-                task.status === 'Pending Manager Approval' ||
-                task.status === 'Pending Admin Approval' ||
-                task.status === 'Completed'
-              }
-            >
-              <option value="Pending">📋 Pending</option>
-              <option value="In Progress">⚡ In Progress</option>
-              <option value={isManagerSelfUpdate ? 'Pending Admin Approval' : 'Pending Manager Approval'}>
-                {isManagerSelfUpdate ? '⏳ Submit for Admin Approval' : '⏳ Submit for Manager Approval'}
-              </option>
-              {task.status === 'Completed' && <option value="Completed">✅ Completed</option>}
-            </select>
+        {/* Employee / Manager status + SRN edit */}
+        {(role === 'employee' || role === 'manager') && (onStatusChange || onEditSrn) && (
+          <div className="mt-1 pt-4 border-t border-black/10 space-y-3">
+            {onStatusChange && (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 mb-2">Update Status</p>
+                <select
+                  value={task.status}
+                  onChange={(e) => onStatusChange(task._id, e.target.value)}
+                  className="w-full text-sm rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all"
+                  disabled={
+                    task.status === 'Pending Manager Approval' ||
+                    task.status === 'Pending Admin Approval' ||
+                    task.status === 'Completed'
+                  }
+                >
+                  <option value="Pending">📋 Pending</option>
+                  <option value="In Progress">⚡ In Progress</option>
+                  <option value={isManagerSelfUpdate ? 'Pending Admin Approval' : 'Pending Manager Approval'}>
+                    {isManagerSelfUpdate ? '⏳ Submit for Admin Approval' : '⏳ Submit for Manager Approval'}
+                  </option>
+                  {task.status === 'Completed' && <option value="Completed">✅ Completed</option>}
+                </select>
+              </div>
+            )}
+            {onEditSrn && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onEditSrn(task)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-100 transition-all"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit SRN
+                </button>
+              </div>
+            )}
           </div>
         )}
 

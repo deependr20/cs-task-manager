@@ -17,6 +17,9 @@ export default function EmployeeDashboard() {
   const [selectedTask, setSelectedTask] = useState(null);
   const [remark, setRemark] = useState('');
   const [newStatus, setNewStatus] = useState('');
+  const [showSrnModal, setShowSrnModal] = useState(false);
+  const [selectedTaskForSrn, setSelectedTaskForSrn] = useState(null);
+  const [srnForm, setSrnForm] = useState({ srnOfeForm: '', srnAmount: '', srnDate: '' });
   const TASKS_PER_PAGE = 6;
   const [tasksPage, setTasksPage] = useState(1);
 
@@ -63,6 +66,18 @@ export default function EmployeeDashboard() {
     setSelectedTask(taskId); setNewStatus(status); setShowRemarkModal(true);
   };
 
+  const handleEditSrn = (task) => {
+    setSelectedTaskForSrn(task);
+    setSrnForm({
+      srnOfeForm: task.srnOfeForm || '',
+      srnAmount: task.srnAmount != null ? String(task.srnAmount) : '',
+      srnDate: task.srnDate
+        ? (typeof task.srnDate === 'string' ? task.srnDate.slice(0, 10) : new Date(task.srnDate).toISOString().slice(0, 10))
+        : '',
+    });
+    setShowSrnModal(true);
+  };
+
   const handleUpdateTask = async (e) => {
     e.preventDefault();
     try {
@@ -73,6 +88,28 @@ export default function EmployeeDashboard() {
       if (res.ok) {
         setShowRemarkModal(false); setSelectedTask(null); setRemark(''); setNewStatus('');
         fetchTasks(); fetchStats();
+      }
+    } catch {}
+  };
+
+  const handleUpdateSrn = async (e) => {
+    e.preventDefault();
+    if (!selectedTaskForSrn) return;
+    try {
+      const res = await fetch(`/api/tasks/${selectedTaskForSrn._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          srnOfeForm: srnForm.srnOfeForm,
+          srnAmount: srnForm.srnAmount,
+          srnDate: srnForm.srnDate,
+        }),
+      });
+      if (res.ok) {
+        setShowSrnModal(false);
+        setSelectedTaskForSrn(null);
+        fetchTasks();
       }
     } catch {}
   };
@@ -200,7 +237,14 @@ export default function EmployeeDashboard() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pagedTasks.map((task) => (
-                  <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} role="employee" companies={companies} />
+                  <TaskCard
+                    key={task._id}
+                    task={task}
+                    onStatusChange={handleStatusChange}
+                    role="employee"
+                    companies={companies}
+                    onEditSrn={handleEditSrn}
+                  />
                 ))}
               </div>
               {totalTaskPages > 1 && (
@@ -299,6 +343,74 @@ export default function EmployeeDashboard() {
                 <button type="submit"
                   className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-200 hover:scale-[1.02] transition-all">
                   Confirm Update
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT SRN MODAL ── */}
+      {showSrnModal && selectedTaskForSrn && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          style={{ background: 'rgba(15,12,41,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="bg-white w-full sm:rounded-3xl rounded-t-3xl shadow-2xl sm:max-w-md overflow-hidden">
+            <div className="px-6 py-5 flex items-center justify-between"
+              style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}>
+              <div>
+                <h2 className="text-xl font-black text-white">Edit SRN Details</h2>
+                <p className="text-white/70 text-sm truncate max-w-[260px]">{selectedTaskForSrn.title}</p>
+              </div>
+              <button onClick={() => { setShowSrnModal(false); setSelectedTaskForSrn(null); }}
+                className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleUpdateSrn}>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">SRN of e-Form</label>
+                  <input
+                    type="text"
+                    value={srnForm.srnOfeForm}
+                    onChange={(e) => setSrnForm({ ...srnForm, srnOfeForm: e.target.value })}
+                    className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-800"
+                    placeholder="Service request number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">SRN Amount</label>
+                  <input
+                    type="number"
+                    value={srnForm.srnAmount}
+                    onChange={(e) => setSrnForm({ ...srnForm, srnAmount: e.target.value })}
+                    className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-800"
+                    placeholder="Amount"
+                    step="any"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">SRN Date</label>
+                  <input
+                    type="date"
+                    value={srnForm.srnDate}
+                    onChange={(e) => setSrnForm({ ...srnForm, srnDate: e.target.value })}
+                    className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-800"
+                  />
+                </div>
+              </div>
+              <div className="px-6 pb-6 flex justify-end gap-3">
+                <button type="button"
+                  onClick={() => { setShowSrnModal(false); setSelectedTaskForSrn(null); }}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all">
+                  Cancel
+                </button>
+                <button type="submit"
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 shadow-lg shadow-violet-200 hover:scale-[1.02] transition-all">
+                  Save
                 </button>
               </div>
             </form>

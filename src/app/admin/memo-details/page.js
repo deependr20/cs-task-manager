@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MemoPreview, { TEMPLATE_PDF_URL } from '@/components/MemoPreview';
+import { getCompanyDisplayLabel } from '@/lib/utils';
 
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '–';
@@ -24,9 +25,13 @@ export default function MemoDetailsPage() {
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
   const [filterStatus, setFilterStatus] = useState('all');
   const [companySearch, setCompanySearch] = useState('');
+  const [companies, setCompanies] = useState([]);
+  const MEMOS_PER_PAGE = 10;
+  const [memosPage, setMemosPage] = useState(1);
 
   useEffect(() => { fetchUser(); }, []);
-  useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') fetchMemos(); }, [user]);
+  useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') { fetchMemos(); fetchCompanies(); } }, [user]);
+  useEffect(() => { setMemosPage(1); }, [companySearch, filterStatus, viewMode]);
 
   const fetchUser = async () => {
     try {
@@ -47,14 +52,26 @@ export default function MemoDetailsPage() {
     } catch {} finally { setLoading(false); }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch('/api/companies', { cache: 'no-store', credentials: 'include' });
+      if (res.ok) { const data = await res.json(); setCompanies(data.companies || []); }
+    } catch {}
+  };
+
   if (!user) return null;
 
   const byCompany = !companySearch.trim()
     ? memos
     : memos.filter((m) =>
-        (m.companyName || '').toLowerCase().includes(companySearch.trim().toLowerCase())
+        (getCompanyDisplayLabel(companies, m.companyName) || m.companyName || '').toLowerCase().includes(companySearch.trim().toLowerCase())
       );
   const filtered = filterStatus === 'all' ? byCompany : byCompany.filter((m) => m.status === filterStatus);
+
+  const totalMemoPages = Math.max(1, Math.ceil(filtered.length / MEMOS_PER_PAGE));
+  const safeMemoPage = Math.min(Math.max(memosPage, 1), totalMemoPages);
+  const memoStart = (safeMemoPage - 1) * MEMOS_PER_PAGE;
+  const pagedMemos = filtered.slice(memoStart, memoStart + MEMOS_PER_PAGE);
 
   const sc = (status) => memoStatusConfig[status] || memoStatusConfig.Draft;
 
@@ -181,23 +198,24 @@ export default function MemoDetailsPage() {
             </div>
           ) : viewMode === 'table' ? (
             /* ── TABLE VIEW ── */
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px]">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      {['Memo No.','Company Name','Memo Date','Particulars','Amount','Sent To','Sent By','Follow Up','Payment Date','Status','Action'].map((h) => (
-                        <th key={h} className="text-left py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((memo) => {
-                      const s = sc(memo.status);
-                      return (
-                        <tr key={memo._id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
+            <>
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[900px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        {['Memo No.','Company Name','Memo Date','Particulars','Amount','Sent To','Sent By','Follow Up','Payment Date','Status','Action'].map((h) => (
+                          <th key={h} className="text-left py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedMemos.map((memo) => {
+                        const s = sc(memo.status);
+                        return (
+                          <tr key={memo._id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
                           <td className="py-3.5 px-4 text-sm font-bold text-violet-700">{memo.memoNo}</td>
-                          <td className="py-3.5 px-4 text-sm font-semibold text-slate-800">{memo.companyName}</td>
+                          <td className="py-3.5 px-4 text-sm font-semibold text-slate-800">{getCompanyDisplayLabel(companies, memo.companyName)}</td>
                           <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(memo.memoDate)}</td>
                           <td className="py-3.5 px-4 text-sm text-slate-600 max-w-[160px]">
                             <span className="truncate block" title={memo.particulars}>{memo.particulars || '–'}</span>
@@ -235,16 +253,74 @@ export default function MemoDetailsPage() {
                             </button>
                           </td>
                         </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {totalMemoPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Showing <span className="text-slate-700 font-bold">{memoStart + 1}</span>
+                    {' '}to{' '}
+                    <span className="text-slate-700 font-bold">{Math.min(memoStart + MEMOS_PER_PAGE, filtered.length)}</span>
+                    {' '}of{' '}
+                    <span className="text-slate-700 font-bold">{filtered.length}</span> memos
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setMemosPage((p) => Math.max(1, p - 1))}
+                      disabled={safeMemoPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeMemoPage === 1
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalMemoPages }, (_, i) => i + 1).map((p) => {
+                      const active = p === safeMemoPage;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setMemosPage(p)}
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${
+                            active
+                              ? 'text-white ring-violet-200 shadow-md shadow-violet-100'
+                              : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                          }`}
+                          style={active ? { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' } : undefined}
+                        >
+                          {p}
+                        </button>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                    <button
+                      type="button"
+                      onClick={() => setMemosPage((p) => Math.min(totalMemoPages, p + 1))}
+                      disabled={safeMemoPage === totalMemoPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeMemoPage === totalMemoPages
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             /* ── CARD VIEW ── */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((memo) => {
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pagedMemos.map((memo) => {
                 const s = sc(memo.status);
                 return (
                   <div key={memo._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden group">
@@ -254,7 +330,7 @@ export default function MemoDetailsPage() {
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-violet-600 font-bold mb-0.5">{memo.memoNo}</p>
-                          <h3 className="text-base font-bold text-slate-800 truncate">{memo.companyName}</h3>
+                          <h3 className="text-base font-bold text-slate-800 truncate">{getCompanyDisplayLabel(companies, memo.companyName)}</h3>
                           {memo.particulars && (
                             <p className="text-xs text-slate-400 truncate mt-0.5">{memo.particulars}</p>
                           )}
@@ -314,7 +390,64 @@ export default function MemoDetailsPage() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+
+              {totalMemoPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Showing <span className="text-slate-700 font-bold">{memoStart + 1}</span>
+                    {' '}to{' '}
+                    <span className="text-slate-700 font-bold">{Math.min(memoStart + MEMOS_PER_PAGE, filtered.length)}</span>
+                    {' '}of{' '}
+                    <span className="text-slate-700 font-bold">{filtered.length}</span> memos
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setMemosPage((p) => Math.max(1, p - 1))}
+                      disabled={safeMemoPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeMemoPage === 1
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalMemoPages }, (_, i) => i + 1).map((p) => {
+                      const active = p === safeMemoPage;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setMemosPage(p)}
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${
+                            active
+                              ? 'text-white ring-violet-200 shadow-md shadow-violet-100'
+                              : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                          }`}
+                          style={active ? { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' } : undefined}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setMemosPage((p) => Math.min(totalMemoPages, p + 1))}
+                      disabled={safeMemoPage === totalMemoPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeMemoPage === totalMemoPages
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

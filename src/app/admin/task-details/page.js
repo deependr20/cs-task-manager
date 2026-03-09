@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCompanyDisplayLabel } from '@/lib/utils';
 
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '–';
@@ -37,11 +38,15 @@ export default function TaskDetailsPage() {
   const [savingMemo, setSavingMemo] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
   const [companySearch, setCompanySearch] = useState('');
+  const [companies, setCompanies] = useState([]);
+  const TASKS_PER_PAGE = 10;
+  const [tasksPage, setTasksPage] = useState(1);
 
   const isViewOnly = user?.role === 'manager';
 
   useEffect(() => { fetchUser(); }, []);
-  useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') { fetchTasks(); fetchMemos(); } }, [user]);
+  useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') { fetchTasks(); fetchMemos(); fetchCompanies(); } }, [user]);
+  useEffect(() => { setTasksPage(1); }, [companySearch, viewMode]);
 
   const fetchUser = async () => {
     try {
@@ -66,6 +71,13 @@ export default function TaskDetailsPage() {
     try {
       const res = await fetch('/api/memos', { cache: 'no-store', credentials: 'include' });
       if (res.ok) { const data = await res.json(); setMemos(data.memos); }
+    } catch {}
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch('/api/companies', { cache: 'no-store', credentials: 'include' });
+      if (res.ok) { const data = await res.json(); setCompanies(data.companies || []); }
     } catch {}
   };
 
@@ -127,6 +139,11 @@ export default function TaskDetailsPage() {
           .toLowerCase()
           .includes(companySearch.trim().toLowerCase())
       );
+
+  const totalTaskPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE));
+  const safeTasksPage = Math.min(Math.max(tasksPage, 1), totalTaskPages);
+  const serialNoStart = (safeTasksPage - 1) * TASKS_PER_PAGE;
+  const pagedTasks = filteredTasks.slice(serialNoStart, serialNoStart + TASKS_PER_PAGE);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -210,92 +227,151 @@ export default function TaskDetailsPage() {
             </div>
           ) : viewMode === 'table' ? (
             /* ── TABLE VIEW ── */
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1100px]">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      {['S.No.','Company Name','Task','Form','Assigned To','Due Date','Completion Date','Status','SRN of e-Form','Remarks','Memo Status','Action'].map((h) => (
-                        <th key={h} className="text-left py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTasks.map((task, idx) => {
-                      const memo = memoByTaskId[task._id];
-                      const s = sc(task.status);
-                      return (
-                        <tr key={task._id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors group">
-                          <td className="py-3.5 px-4 text-sm text-slate-500 font-medium">{idx + 1}</td>
-                          <td className="py-3.5 px-4">
-                            <span className="text-sm font-semibold text-slate-800">{task.companyName || '–'}</span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className="text-sm text-slate-700 font-medium">{task.title}</span>
-                          </td>
-                          <td className="py-3.5 px-4 text-sm text-slate-500">{task.form || '–'}</td>
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                {task.assignedTo?.name?.charAt(0).toUpperCase() || '?'}
+            <>
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1100px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        {['S.No.','Company Name','Task','Form','Assigned To','Due Date','Completion Date','Status','SRN of e-Form','Remarks','Memo Status','Action'].map((h) => (
+                          <th key={h} className="text-left py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedTasks.map((task, idx) => {
+                        const memo = memoByTaskId[task._id];
+                        const s = sc(task.status);
+                        return (
+                          <tr key={task._id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors group">
+                            <td className="py-3.5 px-4 text-sm text-slate-500 font-medium">{serialNoStart + idx + 1}</td>
+                            <td className="py-3.5 px-4">
+                              <span className="text-sm font-semibold text-slate-800">{getCompanyDisplayLabel(companies, task.companyName) || '–'}</span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="text-sm text-slate-700 font-medium">{task.title}</span>
+                            </td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500">{task.form || '–'}</td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                  {task.assignedTo?.name?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                                <span className="text-sm text-slate-700">{task.assignedTo?.name || '–'}</span>
                               </div>
-                              <span className="text-sm text-slate-700">{task.assignedTo?.name || '–'}</span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.dueDate)}</td>
-                          <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.completionDate)}</td>
-                          <td className="py-3.5 px-4">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${s.cls}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                              {task.status}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-sm text-slate-500">{task.srnOfeForm || '–'}</td>
-                          <td className="py-3.5 px-4 text-sm text-slate-500 max-w-[140px]">
-                            <span className="truncate block" title={remarksText(task)}>{remarksText(task)}</span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {memo ? (
-                              <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${memoStatusConfig[memo.status] || 'bg-slate-100 text-slate-600'}`}>
-                                {memo.status}
+                            </td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.dueDate)}</td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(task.completionDate)}</td>
+                            <td className="py-3.5 px-4">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${s.cls}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                                {task.status}
                               </span>
-                            ) : (
-                              <span className="text-slate-300 text-xs">–</span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {memo ? (
-                              <a href="/admin/memo-details"
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-800 transition-colors">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                                View Memo
-                              </a>
-                            ) : !isViewOnly ? (
-                              <button onClick={() => openRaiseMemo(task)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Raise Memo
-                              </button>
-                            ) : (
-                              <span className="text-slate-300 text-xs">–</span>
-                            )}
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500">{task.srnOfeForm || '–'}</td>
+                            <td className="py-3.5 px-4 text-sm text-slate-500 max-w-[140px]">
+                              <span className="truncate block" title={remarksText(task)}>{remarksText(task)}</span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              {memo ? (
+                                <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${memoStatusConfig[memo.status] || 'bg-slate-100 text-slate-600'}`}>
+                                  {memo.status}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300 text-xs">–</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              {memo ? (
+                                <a href="/admin/memo-details"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-800 transition-colors">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  View Memo
+                                </a>
+                              ) : !isViewOnly ? (
+                                <button onClick={() => openRaiseMemo(task)}
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                  Raise Memo
+                                </button>
+                              ) : (
+                                <span className="text-slate-300 text-xs">–</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {totalTaskPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Showing <span className="text-slate-700 font-bold">{serialNoStart + 1}</span>
+                    {' '}to{' '}
+                    <span className="text-slate-700 font-bold">{Math.min(serialNoStart + TASKS_PER_PAGE, filteredTasks.length)}</span>
+                    {' '}of{' '}
+                    <span className="text-slate-700 font-bold">{filteredTasks.length}</span> tasks
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.max(1, p - 1))}
+                      disabled={safeTasksPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeTasksPage === 1
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalTaskPages }, (_, i) => i + 1).map((p) => {
+                      const active = p === safeTasksPage;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setTasksPage(p)}
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${
+                            active
+                              ? 'text-white ring-violet-200 shadow-md shadow-violet-100'
+                              : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                          }`}
+                          style={active ? { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' } : undefined}
+                        >
+                          {p}
+                        </button>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.min(totalTaskPages, p + 1))}
+                      disabled={safeTasksPage === totalTaskPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeTasksPage === totalTaskPages
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             /* ── CARD VIEW (mobile-friendly) ── */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTasks.map((task, idx) => {
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pagedTasks.map((task, idx) => {
                 const memo = memoByTaskId[task._id];
                 const s = sc(task.status);
                 const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'Completed';
@@ -307,7 +383,7 @@ export default function TaskDetailsPage() {
                       {/* Header */}
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-400 font-semibold mb-0.5">#{idx + 1} · {task.companyName || '–'}</p>
+                          <p className="text-xs text-slate-400 font-semibold mb-0.5">#{serialNoStart + idx + 1} · {getCompanyDisplayLabel(companies, task.companyName) || '–'}</p>
                           <h3 className="text-base font-bold text-slate-800 leading-snug">{task.title}</h3>
                         </div>
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold flex-shrink-0 ${s.cls}`}>
@@ -397,7 +473,64 @@ export default function TaskDetailsPage() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+
+              {totalTaskPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Showing <span className="text-slate-700 font-bold">{serialNoStart + 1}</span>
+                    {' '}to{' '}
+                    <span className="text-slate-700 font-bold">{Math.min(serialNoStart + TASKS_PER_PAGE, filteredTasks.length)}</span>
+                    {' '}of{' '}
+                    <span className="text-slate-700 font-bold">{filteredTasks.length}</span> tasks
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.max(1, p - 1))}
+                      disabled={safeTasksPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeTasksPage === 1
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalTaskPages }, (_, i) => i + 1).map((p) => {
+                      const active = p === safeTasksPage;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setTasksPage(p)}
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${
+                            active
+                              ? 'text-white ring-violet-200 shadow-md shadow-violet-100'
+                              : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                          }`}
+                          style={active ? { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' } : undefined}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.min(totalTaskPages, p + 1))}
+                      disabled={safeTasksPage === totalTaskPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeTasksPage === totalTaskPages
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

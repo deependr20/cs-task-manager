@@ -1,19 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StatsCard from '@/components/StatsCard';
 import TaskCard from '@/components/TaskCard';
 import MemoPreview from '@/components/MemoPreview';
 import companyForms from '@/data/company-forms.json';
+import { getCompanyDisplayLabel } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const raisedMemosRef = useRef(null);
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const TASKS_PER_PAGE = 6;
+  const [tasksPage, setTasksPage] = useState(1);
   const [selectedEmployee, setSelectedEmployee] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -36,6 +40,7 @@ export default function AdminDashboard() {
   const [memos, setMemos] = useState([]);
   const [previewMemo, setPreviewMemo] = useState(null);
   const [companies, setCompanies] = useState([]);
+  const [memoStatusFilter, setMemoStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchUser(); fetchStats(); fetchTasks(); fetchEmployees();
@@ -47,6 +52,10 @@ export default function AdminDashboard() {
       fetchCompanies();
     }
   }, [user]);
+
+  useEffect(() => {
+    setTasksPage(1);
+  }, [selectedEmployee, selectedStatus]);
 
   const fetchUser = async () => {
     try {
@@ -99,6 +108,12 @@ export default function AdminDashboard() {
       const res = await fetch('/api/companies', { cache: 'no-store', credentials: 'include' });
       if (res.ok) { const data = await res.json(); setCompanies(data.companies || []); }
     } catch {}
+  };
+
+  const scrollToRaisedMemos = () => {
+    const el = raisedMemosRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleCreateTask = async (e) => {
@@ -214,6 +229,13 @@ export default function AdminDashboard() {
 
   const pendingApprovals = tasks.filter(t => t.status === 'Pending Admin Approval');
 
+  const totalTaskPages = Math.max(1, Math.ceil(tasks.length / TASKS_PER_PAGE));
+  const safeTasksPage = Math.min(Math.max(tasksPage, 1), totalTaskPages);
+  const pagedTasks = tasks.slice(
+    (safeTasksPage - 1) * TASKS_PER_PAGE,
+    safeTasksPage * TASKS_PER_PAGE
+  );
+
   if (!user) {
     return null;
   }
@@ -290,10 +312,10 @@ export default function AdminDashboard() {
               onClick={() => setSelectedStatus('Completed')}
               active={selectedStatus === 'Completed'}
             />
-            <StatsCard title="Employees" value={stats?.totalEmployees || 0} color="purple"
-              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
-              onClick={() => router.push('/admin/employees')}
-              active={false}
+            <StatsCard title="Memos" value={memos.length} color="purple"
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+              onClick={() => { setMemoStatusFilter('all'); scrollToRaisedMemos(); }}
+              active={memoStatusFilter === 'all'}
             />
           </div>
 
@@ -307,15 +329,7 @@ export default function AdminDashboard() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Employee</label>
-                <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}
-                  className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all">
-                  <option value="all">All Employees</option>
-                  {employees.map((emp) => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Status</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Task Status</label>
                 <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}
                   className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all">
                   <option value="all">All Status</option>
@@ -324,6 +338,18 @@ export default function AdminDashboard() {
                   <option value="Pending Manager Approval">Pending Manager Approval</option>
                   <option value="Pending Admin Approval">Pending Admin Approval</option>
                   <option value="Completed">Completed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Memo</label>
+                <select value={memoStatusFilter} onChange={(e) => setMemoStatusFilter(e.target.value)}
+                  className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all">
+                  <option value="all">All Memos</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Sent">Sent</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Overdue">Overdue</option>
+                  <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
             </div>
@@ -355,7 +381,7 @@ export default function AdminDashboard() {
                     <h3 className="font-bold text-slate-800 text-base mb-1">{task.title}</h3>
                     <p className="text-sm text-slate-500 line-clamp-2 mb-3">{task.description}</p>
                     <div className="space-y-1 mb-3 text-sm">
-                      <p><span className="font-semibold text-slate-600">Company:</span> <span className="text-slate-700">{task.companyName}</span></p>
+                      <p><span className="font-semibold text-slate-600">Company:</span> <span className="text-slate-700">{getCompanyDisplayLabel(companies, task.companyName)}</span></p>
                       <p><span className="font-semibold text-slate-600">Assigned:</span> <span className="text-slate-700">{task.assignedTo?.name}</span></p>
                     </div>
                     {task.remarks?.length > 0 && (
@@ -417,24 +443,115 @@ export default function AdminDashboard() {
               <p className="text-slate-500 font-medium">No tasks found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tasks.map((task) => {
-                const taskIdStr = task._id?.toString?.() ?? task._id;
-                const existingMemo = memos.find((m) => (m.taskId?._id ?? m.taskId)?.toString?.() === taskIdStr) || null;
-                return (
-                  <TaskCard
-                    key={task._id}
-                    task={task}
-                    onEdit={handleEditTask}
-                    onDelete={handleDeleteTask}
-                    onRaiseMemo={openRaiseMemo}
-                    onViewMemo={setPreviewMemo}
-                    existingMemo={existingMemo}
-                    role="admin"
-                  />
-                );
-              })}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pagedTasks.map((task) => {
+                  const taskIdStr = task._id?.toString?.() ?? task._id;
+                  const existingMemo =
+                    memos.find((m) => (m.taskId?._id ?? m.taskId)?.toString?.() === taskIdStr) || null;
+                  return (
+                    <TaskCard
+                      key={task._id}
+                      task={task}
+                      onEdit={handleEditTask}
+                      onDelete={handleDeleteTask}
+                      onRaiseMemo={openRaiseMemo}
+                      onViewMemo={setPreviewMemo}
+                      existingMemo={existingMemo}
+                      role="admin"
+                      companies={companies}
+                    />
+                  );
+                })}
+              </div>
+
+              {totalTaskPages > 1 && (
+                <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Showing <span className="text-slate-700 font-bold">{(safeTasksPage - 1) * TASKS_PER_PAGE + 1}</span>
+                    {' '}to{' '}
+                    <span className="text-slate-700 font-bold">
+                      {Math.min(safeTasksPage * TASKS_PER_PAGE, tasks.length)}
+                    </span>
+                    {' '}of{' '}
+                    <span className="text-slate-700 font-bold">{tasks.length}</span> tasks
+                  </p>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.max(1, p - 1))}
+                      disabled={safeTasksPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeTasksPage === 1
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Prev
+                    </button>
+
+                    {(() => {
+                      const pages = [];
+                      const add = (v) => pages.push(v);
+                      const last = totalTaskPages;
+                      const cur = safeTasksPage;
+
+                      if (last <= 7) {
+                        for (let i = 1; i <= last; i++) add(i);
+                      } else {
+                        add(1);
+                        if (cur > 3) add('…');
+                        const start = Math.max(2, cur - 1);
+                        const end = Math.min(last - 1, cur + 1);
+                        for (let i = start; i <= end; i++) add(i);
+                        if (cur < last - 2) add('…');
+                        add(last);
+                      }
+
+                      return pages.map((p, idx) => {
+                        if (p === '…') {
+                          return (
+                            <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 text-sm font-bold">
+                              …
+                            </span>
+                          );
+                        }
+                        const active = p === cur;
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setTasksPage(p)}
+                            className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${
+                              active
+                                ? 'text-white ring-violet-200 shadow-md shadow-violet-100'
+                                : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                            }`}
+                            style={active ? { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' } : undefined}
+                          >
+                            {p}
+                          </button>
+                        );
+                      });
+                    })()}
+
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.min(totalTaskPages, p + 1))}
+                      disabled={safeTasksPage === totalTaskPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${
+                        safeTasksPage === totalTaskPages
+                          ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Employee Stats Table */}
@@ -473,6 +590,101 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* Raised Memos - gradient section with filter */}
+          <div
+            ref={raisedMemosRef}
+            className="mt-8 rounded-2xl overflow-hidden border border-slate-200 shadow-lg scroll-mt-24"
+            style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <div className="p-6 pb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white">Raised Memos</h2>
+                  <p className="text-white/80 text-sm">Memos that have been raised — filter by status</p>
+                </div>
+                <span className="ml-auto text-sm font-bold text-white/90 bg-white/20 px-3 py-1.5 rounded-xl">
+                  {memoStatusFilter === 'all' ? memos.length : memos.filter(m => m.status === memoStatusFilter).length} memo{(memoStatusFilter === 'all' ? memos.length : memos.filter(m => m.status === memoStatusFilter).length) !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'Draft', label: 'Draft' },
+                  { value: 'Sent', label: 'Sent' },
+                  { value: 'Paid', label: 'Paid' },
+                  { value: 'Overdue', label: 'Overdue' },
+                  { value: 'Cancelled', label: 'Cancelled' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setMemoStatusFilter(value)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      memoStatusFilter === value ? 'bg-white text-violet-700 shadow-md' : 'bg-white/20 text-white hover:bg-white/30'
+                    }`}
+                  >
+                    {label}
+                    {value !== 'all' && (
+                      <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs font-bold ${memoStatusFilter === value ? 'bg-violet-100 text-violet-700' : 'bg-white/20'}`}>
+                        {memos.filter(m => m.status === value).length}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white/95 backdrop-blur p-6 rounded-t-2xl min-h-[100px]">
+              {(memoStatusFilter === 'all' ? memos : memos.filter(m => m.status === memoStatusFilter)).length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <p className="font-medium">No memos raised yet</p>
+                  <p className="text-sm mt-1">Memos will appear here once raised from tasks.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(memoStatusFilter === 'all' ? memos : memos.filter(m => m.status === memoStatusFilter)).map((memo) => (
+                    <div key={memo._id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-xs font-mono font-bold text-violet-600">{memo.memoNo}</span>
+                        <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-semibold ${
+                          memo.status === 'Paid' ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' :
+                          memo.status === 'Sent' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' :
+                          memo.status === 'Draft' ? 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' :
+                          memo.status === 'Overdue' ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' :
+                          'bg-rose-100 text-rose-700 ring-1 ring-rose-200'
+                        }`}>
+                          {memo.status}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800 truncate">{getCompanyDisplayLabel(companies, memo.companyName)}</p>
+                      {memo.taskId && <p className="text-xs text-slate-500 mt-0.5 truncate">{memo.taskId.title || 'Task'}</p>}
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-sm font-bold text-slate-700">₹{Number(memo.amount).toLocaleString('en-IN')}</span>
+                        <span className="text-xs text-slate-400">{memo.memoDate ? new Date(memo.memoDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '–'}</span>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMemo(memo)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-violet-700 bg-violet-100 hover:bg-violet-200 ring-1 ring-violet-200 transition-all"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -531,9 +743,10 @@ export default function AdminDashboard() {
                   <select value={taskForm.companyName} onChange={(e) => setTaskForm({ ...taskForm, companyName: e.target.value })}
                     className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all" required>
                     <option value="">Select company</option>
-                    {companies.map((c) => (
-                      <option key={c._id} value={c.name}>{c.name}{c.cin ? ` (${c.cin})` : ''}</option>
-                    ))}
+                    {companies.map((c) => {
+                    const label = (c.fileNumber && String(c.fileNumber).trim()) ? `${String(c.fileNumber).trim()} – ${c.name || '–'}` : (c.name || '–');
+                    return <option key={c._id} value={label}>{label}{c.cin ? ` (${c.cin})` : ''}</option>;
+                  })}
                   </select>
                   {companies.length === 0 && (
                     <p className="mt-1.5 text-xs text-amber-700">No companies yet. Add companies from the Companies page.</p>

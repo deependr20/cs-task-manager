@@ -17,6 +17,7 @@ const CompanySchema = new mongoose.Schema(
   {
     firmId: { type: mongoose.Schema.Types.ObjectId, ref: 'Firm', default: null },
     name: { type: String, required: true, trim: true },
+    fileNumber: { type: String, trim: true, default: '' },
     companyUserId: { type: String, trim: true },
     password: { type: String, trim: true },
     emailId: { type: String, trim: true },

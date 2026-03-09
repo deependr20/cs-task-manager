@@ -6,6 +6,7 @@ import StatsCard from '@/components/StatsCard';
 import TaskCard from '@/components/TaskCard';
 import MemoPreview from '@/components/MemoPreview';
 import companyForms from '@/data/company-forms.json';
+import { getCompanyDisplayLabel } from '@/lib/utils';
 
 export default function ManagerDashboard() {
   const router = useRouter();
@@ -37,9 +38,15 @@ export default function ManagerDashboard() {
   const [selectedTaskForStatus, setSelectedTaskForStatus] = useState(null);
   const [statusRemark, setStatusRemark] = useState('');
   const [newStatus, setNewStatus] = useState('');
+  const TASKS_PER_PAGE = 6;
+  const [tasksPage, setTasksPage] = useState(1);
 
   useEffect(() => {
     fetchUser(); fetchStats(); fetchTasks(); fetchEmployees();
+  }, [selectedStatus]);
+
+  useEffect(() => {
+    setTasksPage(1);
   }, [selectedStatus]);
 
   useEffect(() => {
@@ -222,6 +229,9 @@ export default function ManagerDashboard() {
 
   const inputCls = "w-full text-sm rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all";
   const managerId = user._id || user.id;
+  const totalTaskPages = Math.max(1, Math.ceil(tasks.length / TASKS_PER_PAGE));
+  const safeTasksPage = Math.min(Math.max(tasksPage, 1), totalTaskPages);
+  const pagedTasks = tasks.slice((safeTasksPage - 1) * TASKS_PER_PAGE, safeTasksPage * TASKS_PER_PAGE);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -336,7 +346,7 @@ export default function ManagerDashboard() {
                     <h3 className="font-bold text-slate-800 text-base mb-1">{task.title}</h3>
                     <p className="text-sm text-slate-500 line-clamp-2 mb-3">{task.description}</p>
                     <div className="space-y-1 mb-3 text-sm">
-                      <p><span className="font-semibold text-slate-600">Company:</span> <span className="text-slate-700">{task.companyName}</span></p>
+                      <p><span className="font-semibold text-slate-600">Company:</span> <span className="text-slate-700">{getCompanyDisplayLabel(companies, task.companyName)}</span></p>
                       <p><span className="font-semibold text-slate-600">Assigned:</span> <span className="text-slate-700">{task.assignedTo?.name}</span></p>
                     </div>
                     {task.remarks?.length > 0 && (
@@ -398,26 +408,72 @@ export default function ManagerDashboard() {
               <p className="text-slate-500 font-medium">No tasks found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tasks.map((task) => {
-              const taskIdStr = task._id?.toString?.() ?? task._id;
-              const existingMemo = memos.find((m) => (m.taskId?._id ?? m.taskId)?.toString?.() === taskIdStr) || null;
-              const canSelfUpdate =
-                task.assignedTo &&
-                (task.assignedTo._id === managerId || task.assignedTo.id === managerId);
-              return (
-                <TaskCard
-                  key={task._id}
-                  task={task}
-                  onRaiseMemo={perms.canRaiseMemos === false ? undefined : openRaiseMemo}
-                  onViewMemo={setPreviewMemo}
-                  existingMemo={existingMemo}
-                  role="manager"
-                  onStatusChange={canSelfUpdate ? handleStatusChange : undefined}
-                />
-              );
-            })}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pagedTasks.map((task) => {
+                  const taskIdStr = task._id?.toString?.() ?? task._id;
+                  const existingMemo = memos.find((m) => (m.taskId?._id ?? m.taskId)?.toString?.() === taskIdStr) || null;
+                  const canSelfUpdate =
+                    task.assignedTo &&
+                    (task.assignedTo._id === managerId || task.assignedTo.id === managerId);
+                  return (
+                    <TaskCard
+                      key={task._id}
+                      task={task}
+                      onRaiseMemo={perms.canRaiseMemos === false ? undefined : openRaiseMemo}
+                      onViewMemo={setPreviewMemo}
+                      existingMemo={existingMemo}
+                      role="manager"
+                      onStatusChange={canSelfUpdate ? handleStatusChange : undefined}
+                      companies={companies}
+                    />
+                  );
+                })}
+              </div>
+              {totalTaskPages > 1 && (
+                <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Showing <span className="text-slate-700 font-bold">{(safeTasksPage - 1) * TASKS_PER_PAGE + 1}</span>
+                    {' '}to{' '}
+                    <span className="text-slate-700 font-bold">{Math.min(safeTasksPage * TASKS_PER_PAGE, tasks.length)}</span>
+                    {' '}of{' '}
+                    <span className="text-slate-700 font-bold">{tasks.length}</span> tasks
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.max(1, p - 1))}
+                      disabled={safeTasksPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${safeTasksPage === 1 ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalTaskPages }, (_, i) => i + 1).map((p) => {
+                      const active = p === safeTasksPage;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setTasksPage(p)}
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${active ? 'text-white ring-blue-200 shadow-md shadow-blue-100' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                          style={active ? { background: 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)' } : undefined}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.min(totalTaskPages, p + 1))}
+                      disabled={safeTasksPage === totalTaskPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${safeTasksPage === totalTaskPages ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
         </div>
@@ -557,9 +613,10 @@ export default function ManagerDashboard() {
                   <select value={taskForm.companyName} onChange={(e) => setTaskForm({ ...taskForm, companyName: e.target.value })}
                     className={inputCls} required>
                     <option value="">Select company</option>
-                    {companies.map((c) => (
-                      <option key={c._id} value={c.name}>{c.name}{c.cin ? ` (${c.cin})` : ''}</option>
-                    ))}
+                    {companies.map((c) => {
+                    const label = (c.fileNumber && String(c.fileNumber).trim()) ? `${String(c.fileNumber).trim()} – ${c.name || '–'}` : (c.name || '–');
+                    return <option key={c._id} value={label}>{label}{c.cin ? ` (${c.cin})` : ''}</option>;
+                  })}
                   </select>
                   {companies.length === 0 && (
                     <p className="mt-1.5 text-xs text-amber-700">No companies yet. Add companies from the Companies page.</p>

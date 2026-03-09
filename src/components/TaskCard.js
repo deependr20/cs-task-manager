@@ -1,6 +1,9 @@
 'use client';
 
-export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onRaiseMemo, onViewMemo, existingMemo, role }) {
+import { getCompanyDisplayLabel } from '@/lib/utils';
+
+export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onRaiseMemo, onViewMemo, existingMemo, role, companies = [] }) {
+  const displayCompanyName = getCompanyDisplayLabel(companies, task.companyName);
   const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'Completed';
 
   const statusConfig = {
@@ -73,12 +76,12 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onRai
             <h3 className="text-base font-bold text-slate-800 truncate group-hover:text-violet-700 transition-colors">
               {task.title}
             </h3>
-            {task.companyName && (
+            {displayCompanyName && (
               <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                {task.companyName}
+                {displayCompanyName}
               </p>
             )}
           </div>

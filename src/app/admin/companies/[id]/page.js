@@ -85,7 +85,7 @@ export default function EditCompanyPage() {
             </Link>
             <div>
               <h1 className="text-2xl font-black text-slate-800">Edit Company</h1>
-              <p className="text-slate-500 text-sm mt-1">{company.name}</p>
+              <p className="text-slate-500 text-sm mt-1">{company.fileNumber && String(company.fileNumber).trim() ? `${String(company.fileNumber).trim()} – ${company.name || '–'}` : (company.name || '–')}</p>
             </div>
           </div>
           <CompanyForm

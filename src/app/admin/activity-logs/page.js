@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCompanyDisplayLabel } from '@/lib/utils';
 
 const actionConfig = {
   TASK_CREATED:                { gradient: 'from-blue-500 to-cyan-500',     bg: 'bg-blue-50',   text: 'text-blue-700',   ring: 'ring-blue-200',   icon: '📝' },
@@ -31,9 +32,11 @@ export default function ActivityLogsPage() {
   const [selectedEmployee, setSelectedEmployee] = useState('all');
   const [selectedAction, setSelectedAction] = useState('all');
   const [employees, setEmployees] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
 
   useEffect(() => { fetchUser(); fetchEmployees(); }, []);
+  useEffect(() => { if (user?.role === 'admin') fetchCompanies(); }, [user]);
   useEffect(() => { fetchActivities(); }, [selectedEmployee, selectedAction, pagination.page]);
 
   const fetchUser = async () => {
@@ -70,6 +73,13 @@ export default function ActivityLogsPage() {
         setPagination(data.pagination);
       }
     } catch {} finally { setLoading(false); }
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch('/api/companies', { cache: 'no-store', credentials: 'include' });
+      if (res.ok) { const data = await res.json(); setCompanies(data.companies || []); }
+    } catch {}
   };
 
   if (!user) return null;
@@ -261,7 +271,7 @@ export default function ActivityLogsPage() {
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                 </svg>
-                                {activity.companyName}
+                                {getCompanyDisplayLabel(companies, activity.companyName)}
                               </span>
                             </>
                           )}

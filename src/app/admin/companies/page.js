@@ -14,13 +14,14 @@ function CompanyCard({ company, onDelete, viewOnly }) {
   const [expanded, setExpanded] = useState(false);
 
   const directors = Array.isArray(company.directors) ? company.directors : [];
-  const initials = company.name
-    ?.split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase() || '?';
-
+  const initials = (company.fileNumber && String(company.fileNumber).trim())
+    ? String(company.fileNumber).trim().slice(0, 4).toUpperCase()
+    : (company.name
+        ?.split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase() || '?');
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden group">
       {/* Gradient strip */}
@@ -180,11 +181,14 @@ export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const COMPANIES_PER_PAGE = 6;
+  const [companiesPage, setCompaniesPage] = useState(1);
 
   const isViewOnly = user?.role === 'manager';
 
   useEffect(() => { fetchUser(); }, []);
   useEffect(() => { if (user?.role === 'admin' || user?.role === 'manager') fetchCompanies(); }, [user]);
+  useEffect(() => { setCompaniesPage(1); }, [search]);
 
   const fetchUser = async () => {
     try {
@@ -216,10 +220,19 @@ export default function AdminCompaniesPage() {
   if (!user) return null;
 
   const filtered = companies.filter((c) =>
-    !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.cin?.toLowerCase().includes(search.toLowerCase())
+    !search ||
+    c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.cin?.toLowerCase().includes(search.toLowerCase()) ||
+    c.fileNumber?.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalDirectors = companies.reduce((s, c) => s + (c.directors?.length || 0), 0);
+  const totalCompanyPages = Math.max(1, Math.ceil(filtered.length / COMPANIES_PER_PAGE));
+  const safeCompanyPage = Math.min(Math.max(companiesPage, 1), totalCompanyPages);
+  const pagedCompanies = filtered.slice(
+    (safeCompanyPage - 1) * COMPANIES_PER_PAGE,
+    safeCompanyPage * COMPANIES_PER_PAGE
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -274,7 +287,7 @@ export default function AdminCompaniesPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by company name or CIN…"
+              placeholder="Search by company name, CIN, or file number…"
               className="w-full md:w-1/2  pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm text-sm text-slate-700 font-medium placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all" />
             {search && (
               <button onClick={() => setSearch('')}
@@ -314,13 +327,54 @@ export default function AdminCompaniesPage() {
           ) : (
             <>
               <p className="text-xs text-slate-400 font-medium mb-4">
-                Showing {filtered.length} of {companies.length} compan{companies.length !== 1 ? 'ies' : 'y'}
+                Showing {(safeCompanyPage - 1) * COMPANIES_PER_PAGE + 1} to {Math.min(safeCompanyPage * COMPANIES_PER_PAGE, filtered.length)} of {filtered.length} compan{filtered.length !== 1 ? 'ies' : 'y'}
+                {companies.length !== filtered.length && search && ` (filtered from ${companies.length})`}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filtered.map((company) => (
+                {pagedCompanies.map((company) => (
                   <CompanyCard key={company._id} company={company} onDelete={handleDelete} viewOnly={isViewOnly} />
                 ))}
               </div>
+
+              {totalCompanyPages > 1 && (
+                <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Page <span className="text-slate-700 font-bold">{safeCompanyPage}</span> of <span className="text-slate-700 font-bold">{totalCompanyPages}</span>
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setCompaniesPage((p) => Math.max(1, p - 1))}
+                      disabled={safeCompanyPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${safeCompanyPage === 1 ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalCompanyPages }, (_, i) => i + 1).map((p) => {
+                      const active = p === safeCompanyPage;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setCompaniesPage(p)}
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${active ? 'text-white ring-violet-200 shadow-md shadow-violet-100' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                          style={active ? { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' } : undefined}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setCompaniesPage((p) => Math.min(totalCompanyPages, p + 1))}
+                      disabled={safeCompanyPage === totalCompanyPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${safeCompanyPage === totalCompanyPages ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

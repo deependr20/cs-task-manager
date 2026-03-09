@@ -39,6 +39,7 @@ export async function PUT(request, { params }) {
     const body = await request.json();
     const {
       name,
+      fileNumber,
       companyUserId,
       password,
       emailId,
@@ -49,6 +50,7 @@ export async function PUT(request, { params }) {
       directors,
     } = body;
     if (name !== undefined) company.name = name.trim();
+    if (fileNumber !== undefined) company.fileNumber = fileNumber?.trim() || '';
     if (companyUserId !== undefined) company.companyUserId = companyUserId?.trim() || '';
     if (password !== undefined) company.password = password?.trim() || '';
     if (emailId !== undefined) company.emailId = emailId?.trim() || '';

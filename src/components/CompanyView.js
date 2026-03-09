@@ -55,7 +55,7 @@ export default function CompanyView({ company }) {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
               </svg>
-            } value={company.name} className="text-base font-bold" />
+            } value={company.fileNumber && String(company.fileNumber).trim() ? `${String(company.fileNumber).trim()} – ${company.name || '–'}` : (company.name || '–')} className="text-base font-bold" />
           </div>
 
           <Field label="CIN" value={company.cin} />

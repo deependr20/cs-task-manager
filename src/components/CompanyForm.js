@@ -35,6 +35,7 @@ function Field({ label, icon, children }) {
 
 export default function CompanyForm({ company, onSave, onCancel, saving }) {
   const [name, setName] = useState('');
+  const [fileNumber, setFileNumber] = useState('');
   const [companyUserId, setCompanyUserId] = useState('');
   const [password, setPassword] = useState('');
   const [emailId, setEmailId] = useState('');
@@ -49,6 +50,7 @@ export default function CompanyForm({ company, onSave, onCancel, saving }) {
   useEffect(() => {
     if (company) {
       setName(company.name || '');
+      setFileNumber(company.fileNumber || '');
       setCompanyUserId(company.companyUserId || '');
       setPassword(company.password || '');
       setEmailId(company.emailId || '');
@@ -72,7 +74,7 @@ export default function CompanyForm({ company, onSave, onCancel, saving }) {
       );
       setActiveDirectorTab(0);
     } else {
-      setName(''); setCompanyUserId(''); setPassword(''); setEmailId('');
+      setName(''); setFileNumber(''); setCompanyUserId(''); setPassword(''); setEmailId('');
       setRegisteredOfficeAddress(''); setCin(''); setDateOfIncorporation(''); setPuc('');
       setDirectors([emptyDirector()]); setActiveDirectorTab(0);
     }
@@ -103,7 +105,7 @@ export default function CompanyForm({ company, onSave, onCancel, saving }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({
-      name, companyUserId, password, emailId, registeredOfficeAddress, cin,
+      name, fileNumber, companyUserId, password, emailId, registeredOfficeAddress, cin,
       dateOfIncorporation: dateOfIncorporation || undefined, puc,
       directors: directors.map(({ _id, directorName, din, mcaCredentials, password: pwd, dir3KycStatus, mobileNo, emailId: em }) => ({
         ...(_id && { _id }), directorName, din, mcaCredentials, password: pwd, dir3KycStatus, mobileNo, emailId: em,
@@ -142,6 +144,16 @@ export default function CompanyForm({ company, onSave, onCancel, saving }) {
                 placeholder="e.g. INTELLOSOFT INFOTECH PRIVATE LIMITED" required />
             </Field>
           </div>
+
+          <Field label="File Number">
+            <input
+              type="text"
+              value={fileNumber}
+              onChange={(e) => setFileNumber(e.target.value)}
+              className={inputCls}
+              placeholder="e.g. FILE-123 / 2025-26/07"
+            />
+          </Field>
 
           <Field label="CIN">
             <input type="text" value={cin} onChange={(e) => setCin(e.target.value)}

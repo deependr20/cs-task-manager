@@ -10,14 +10,19 @@ export default function EmployeeDashboard() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [remark, setRemark] = useState('');
   const [newStatus, setNewStatus] = useState('');
+  const TASKS_PER_PAGE = 6;
+  const [tasksPage, setTasksPage] = useState(1);
 
   useEffect(() => { fetchUser(); fetchStats(); fetchTasks(); }, [selectedStatus]);
+  useEffect(() => { if (user?.role === 'employee') fetchCompanies(); }, [user]);
+  useEffect(() => { setTasksPage(1); }, [selectedStatus]);
 
   const fetchUser = async () => {
     try {
@@ -47,6 +52,13 @@ export default function EmployeeDashboard() {
     } catch {} finally { setLoading(false); }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch('/api/companies', { cache: 'no-store', credentials: 'include' });
+      if (res.ok) { const data = await res.json(); setCompanies(data.companies || []); }
+    } catch {}
+  };
+
   const handleStatusChange = (taskId, status) => {
     setSelectedTask(taskId); setNewStatus(status); setShowRemarkModal(true);
   };
@@ -66,6 +78,10 @@ export default function EmployeeDashboard() {
   };
 
   if (!user) return null;
+
+  const totalTaskPages = Math.max(1, Math.ceil(tasks.length / TASKS_PER_PAGE));
+  const safeTasksPage = Math.min(Math.max(tasksPage, 1), totalTaskPages);
+  const pagedTasks = tasks.slice((safeTasksPage - 1) * TASKS_PER_PAGE, safeTasksPage * TASKS_PER_PAGE);
 
   const statusOptions = [
     { value: 'all',                          label: 'All' },
@@ -181,11 +197,56 @@ export default function EmployeeDashboard() {
               <p className="text-slate-400 text-sm mt-1">Check back later or ask your manager</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tasks.map((task) => (
-                <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} role="employee" />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pagedTasks.map((task) => (
+                  <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} role="employee" companies={companies} />
+                ))}
+              </div>
+              {totalTaskPages > 1 && (
+                <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Showing <span className="text-slate-700 font-bold">{(safeTasksPage - 1) * TASKS_PER_PAGE + 1}</span>
+                    {' '}to{' '}
+                    <span className="text-slate-700 font-bold">{Math.min(safeTasksPage * TASKS_PER_PAGE, tasks.length)}</span>
+                    {' '}of{' '}
+                    <span className="text-slate-700 font-bold">{tasks.length}</span> tasks
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.max(1, p - 1))}
+                      disabled={safeTasksPage === 1}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${safeTasksPage === 1 ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalTaskPages }, (_, i) => i + 1).map((p) => {
+                      const active = p === safeTasksPage;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setTasksPage(p)}
+                          className={`w-10 h-10 rounded-xl text-xs font-black transition-all ring-1 ${active ? 'text-white ring-emerald-200 shadow-md shadow-emerald-100' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                          style={active ? { background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' } : undefined}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setTasksPage((p) => Math.min(totalTaskPages, p + 1))}
+                      disabled={safeTasksPage === totalTaskPages}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ring-1 ${safeTasksPage === totalTaskPages ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -6,7 +6,7 @@ import { withAuth } from '@/lib/middleware';
 export async function GET(request) {
   const authResult = await withAuth(request);
   if (authResult instanceof NextResponse) return authResult;
-  if (authResult.role !== 'admin' && authResult.role !== 'manager') {
+  if (authResult.role !== 'admin' && authResult.role !== 'manager' && authResult.role !== 'employee') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
@@ -31,6 +31,7 @@ export async function POST(request) {
     const body = await request.json();
     const {
       name,
+      fileNumber,
       companyUserId,
       password,
       emailId,
@@ -46,6 +47,7 @@ export async function POST(request) {
     const company = await Company.create({
       ...(authResult.firmId && { firmId: authResult.firmId }),
       name: name.trim(),
+      fileNumber: fileNumber?.trim() || '',
       companyUserId: companyUserId?.trim() || '',
       password: password?.trim() || '',
       emailId: emailId?.trim() || '',

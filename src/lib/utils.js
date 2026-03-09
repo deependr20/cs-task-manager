@@ -37,3 +37,14 @@ export const getPriorityColor = (priority) => {
   };
   return colors[priority] || 'gray';
 };
+
+/** Given a list of companies and a stored companyName (may be "Name" or "fileNo – Name"), return display label "fileNo – Name" when company has fileNumber, else companyName. */
+export function getCompanyDisplayLabel(companies, companyName) {
+  if (!companyName || typeof companyName !== 'string') return companyName || '';
+  const nameOnly = companyName.includes(' – ') ? companyName.split(' – ').slice(1).join(' – ').trim() : companyName.trim();
+  const company = Array.isArray(companies) && companies.find((c) => (c.name || '').trim() === nameOnly);
+  if (company && company.fileNumber && String(company.fileNumber).trim()) {
+    return `${String(company.fileNumber).trim()} – ${company.name || '–'}`;
+  }
+  return companyName;
+}
